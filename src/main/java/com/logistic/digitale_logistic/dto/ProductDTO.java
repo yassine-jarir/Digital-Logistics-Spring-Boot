@@ -15,20 +15,15 @@ public class    ProductDTO {
     @NotBlank
     @Size(max = 255)
     private String name;
-// a
     @NotBlank
     @Size(max = 255)
     private String category;
-//    @NotBlank
-//    @Size(max = 255)
-//    private String category;
+
     @NotBlank
     @NotNull
     @PositiveOrZero
     private BigDecimal sellingPrice;
-//    @NotBlank
-//    @Size(max = 255)
-//    private String category;
+
     @NotBlank
     @NotNull
     @PositiveOrZero
