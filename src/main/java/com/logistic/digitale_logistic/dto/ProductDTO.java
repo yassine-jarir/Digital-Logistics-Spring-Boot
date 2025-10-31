@@ -28,6 +28,8 @@ public class    ProductDTO {
     private BigDecimal sellingPrice;
 //    @NotBlank
 //    @Size(max = 255)
+//    private String category;//    @NotBlank
+//    @Size(max = 255)
 //    private String category;
     @NotBlank
     @NotNull
