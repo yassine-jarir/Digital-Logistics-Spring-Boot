@@ -1,9 +1,9 @@
 package com.logistic.digitale_logistic.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
-
-import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "warehouses")
@@ -16,18 +16,12 @@ public class Warehouse {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 50)
-    private String code;
-
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(columnDefinition = "text")
-    private String address;
+    @Column(nullable = false)
+    private String location;
 
     @Column(nullable = false)
     private Boolean active = true;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
 }

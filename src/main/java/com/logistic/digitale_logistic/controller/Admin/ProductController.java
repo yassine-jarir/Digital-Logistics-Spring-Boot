@@ -5,11 +5,15 @@ import com.logistic.digitale_logistic.dto.UserDTO;
 import com.logistic.digitale_logistic.entity.Product;
 import com.logistic.digitale_logistic.service.Admin.ProductService;
 import com.logistic.digitale_logistic.service.Admin.UserService;
+import jakarta.persistence.Table;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+@Controller
 
 @RestController
 @RequestMapping("/api/products")
@@ -51,6 +55,4 @@ public class ProductController {
             return ResponseEntity.status(404).body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
-
-
 }
