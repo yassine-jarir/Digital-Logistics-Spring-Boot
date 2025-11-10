@@ -38,9 +38,6 @@ public class PurchaseOrder {
     @Column(name = "order_date")
     private LocalDate orderDate;
 
-    @Column(name = "expected_delivery_date")
-    private LocalDate expectedDeliveryDate;
-
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

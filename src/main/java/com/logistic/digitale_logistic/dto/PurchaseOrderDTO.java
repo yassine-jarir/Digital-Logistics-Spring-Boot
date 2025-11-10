@@ -20,9 +20,7 @@ public class PurchaseOrderDTO {
     private String warehouseName;
     private String status;
     private LocalDate orderDate;
-    private LocalDate expectedDeliveryDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<PoLineDTO> lines;
 }
-

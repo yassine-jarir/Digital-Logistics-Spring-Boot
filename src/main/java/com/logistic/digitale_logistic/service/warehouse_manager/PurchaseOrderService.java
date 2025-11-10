@@ -48,7 +48,6 @@ public class PurchaseOrderService {
         po.setWarehouse(warehouse);
         po.setStatus(PurchaseOrderStatus.DRAFT.name());
         po.setOrderDate(dto.getOrderDate());
-        po.setExpectedDeliveryDate(dto.getExpectedDeliveryDate());
         po.setCreatedAt(LocalDateTime.now());
         po.setUpdatedAt(LocalDateTime.now());
 
