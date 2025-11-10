@@ -19,11 +19,9 @@ import java.util.List;
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
-    private final UserService userService;
 
     public ProductController(ProductService service, UserService userService) {
         this.productService = service;
-        this.userService = userService;
     }
 
     @GetMapping("/all")
@@ -55,4 +53,17 @@ public class ProductController {
             return ResponseEntity.status(404).body("{\"error\":\"" + e.getMessage() + "\"}");
         }
     }
+
+//    mise en situation deactivation par SKU
+    @PutMapping("{sku}/deactivate")
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deactivateProduct(@PathVariable String sku) {
+        try {
+            productService.deactivateProduct(sku);
+            return ResponseEntity.ok("{\"message\":\"Product with SKU " + sku + " has been deactivated.\"}");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
 }

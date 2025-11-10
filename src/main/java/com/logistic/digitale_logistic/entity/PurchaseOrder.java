@@ -1,5 +1,6 @@
 package com.logistic.digitale_logistic.entity;
 
+import com.logistic.digitale_logistic.enums.PurchaseOrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,8 +33,9 @@ public class PurchaseOrder {
     @ToString.Exclude
     private Warehouse warehouse;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private String status = "DRAFT";
+    private PurchaseOrderStatus status = PurchaseOrderStatus.DRAFT;
 
     @Column(name = "order_date")
     private LocalDate orderDate;

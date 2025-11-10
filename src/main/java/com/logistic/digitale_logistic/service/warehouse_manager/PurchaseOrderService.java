@@ -46,7 +46,7 @@ public class PurchaseOrderService {
         po.setPoNumber(generatePoNumber());
         po.setSupplier(supplier);
         po.setWarehouse(warehouse);
-        po.setStatus(PurchaseOrderStatus.DRAFT.name());
+        po.setStatus(PurchaseOrderStatus.DRAFT);
         po.setOrderDate(dto.getOrderDate());
         po.setCreatedAt(LocalDateTime.now());
         po.setUpdatedAt(LocalDateTime.now());
@@ -82,11 +82,11 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException("Purchase Order not found"));
 
         // Validate status
-        if (!PurchaseOrderStatus.DRAFT.name().equals(po.getStatus())) {
+        if (po.getStatus() != PurchaseOrderStatus.DRAFT) {
             throw new BusinessException("Cannot approve: Purchase Order is not in DRAFT status");
         }
 
-        po.setStatus(PurchaseOrderStatus.APPROVED.name());
+        po.setStatus(PurchaseOrderStatus.APPROVED);
         po.setUpdatedAt(LocalDateTime.now());
 
         po = purchaseOrderRepository.save(po);
@@ -100,7 +100,7 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException("Purchase Order not found"));
 
         // Validate status
-        if (!PurchaseOrderStatus.APPROVED.name().equals(po.getStatus())) {
+        if (po.getStatus() != PurchaseOrderStatus.APPROVED) {
             throw new BusinessException("Cannot receive: Purchase Order must be APPROVED first");
         }
 
@@ -132,7 +132,7 @@ public class PurchaseOrderService {
             InventoryMovement movement = new InventoryMovement();
             movement.setProduct(poLine.getProduct());
             movement.setWarehouse(po.getWarehouse());
-            movement.setMovementType(MovementType.INBOUND.name());
+            movement.setMovementType(MovementType.INBOUND);
             movement.setQuantity(qtyToReceive);
             movement.setPurchaseOrder(po);
             movement.setReferenceDoc(po.getPoNumber());
@@ -142,7 +142,7 @@ public class PurchaseOrderService {
         }
 
         // Update PO status to RECEIVED
-        po.setStatus(PurchaseOrderStatus.RECEIVED.name());
+        po.setStatus(PurchaseOrderStatus.RECEIVED);
         po.setUpdatedAt(LocalDateTime.now());
 
         po = purchaseOrderRepository.save(po);
@@ -156,15 +156,15 @@ public class PurchaseOrderService {
                 .orElseThrow(() -> new BusinessException("Purchase Order not found"));
 
         // Validate status - can only cancel DRAFT or APPROVED
-        if (PurchaseOrderStatus.RECEIVED.name().equals(po.getStatus())) {
+        if (po.getStatus() == PurchaseOrderStatus.RECEIVED) {
             throw new BusinessException("Cannot cancel: Purchase Order is already RECEIVED");
         }
 
-        if (PurchaseOrderStatus.CANCELED.name().equals(po.getStatus())) {
+        if (po.getStatus() == PurchaseOrderStatus.CANCELED) {
             throw new BusinessException("Purchase Order is already CANCELED");
         }
 
-        po.setStatus(PurchaseOrderStatus.CANCELED.name());
+        po.setStatus(PurchaseOrderStatus.CANCELED);
         po.setUpdatedAt(LocalDateTime.now());
 
         po = purchaseOrderRepository.save(po);
@@ -185,7 +185,7 @@ public class PurchaseOrderService {
                 .toList();
     }
 
-    public List<PurchaseOrderDTO> getPurchaseOrdersByStatus(String status) {
+    public List<PurchaseOrderDTO> getPurchaseOrdersByStatus(PurchaseOrderStatus status) {
         return purchaseOrderRepository.findByStatus(status).stream()
                 .map(purchaseOrderMapper::toDTO)
                 .toList();
@@ -198,11 +198,11 @@ public class PurchaseOrderService {
     }
 
     private Inventory findOrCreateInventory(Product product, Warehouse warehouse) {
-        // Try to find existing inventory
-        Optional<Inventory> existingInventory = inventoryRepository.findAll().stream()
-                .filter(inv -> inv.getProduct().getId().equals(product.getId())
-                            && inv.getWarehouse().getId().equals(warehouse.getId()))
-                .findFirst();
+        // Try to find existing inventory using optimized query
+        Optional<Inventory> existingInventory = inventoryRepository.findByProduct_IdAndWarehouse_Id(
+                product.getId(),
+                warehouse.getId()
+        );
 
         if (existingInventory.isPresent()) {
             return existingInventory.get();
@@ -219,7 +219,6 @@ public class PurchaseOrderService {
     }
 
     private String generatePoNumber() {
-        // Simple PO number generator: PO-TIMESTAMP
         return "PO-" + System.currentTimeMillis();
     }
 }
