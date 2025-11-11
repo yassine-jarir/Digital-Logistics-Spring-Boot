@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "products")
@@ -41,6 +40,11 @@ public class Product {
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    // New: DB-generated stored column: profit = selling_price - cost_price
+    // Marked insertable=false, updatable=false so JPA treats it as read-only.
+    @Column(name = "profit", precision = 10, scale = 2, insertable = false, updatable = false)
+    private BigDecimal profit;
+
     @PrePersist
     public void generateSku() {
         if (this.sku == null || this.sku.isEmpty()) {
@@ -53,5 +57,6 @@ public class Product {
             this.sku = "PROD-" + namePart + "-" + randomNum;
         }
     }
+
 
 }

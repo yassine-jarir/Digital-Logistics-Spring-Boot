@@ -5,21 +5,23 @@ import com.logistic.digitale_logistic.dto.UserDTO;
 import com.logistic.digitale_logistic.entity.Product;
 import com.logistic.digitale_logistic.service.Admin.ProductService;
 import com.logistic.digitale_logistic.service.Admin.UserService;
+import jakarta.persistence.Table;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+@Controller
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
     private final ProductService productService;
-    private final UserService userService;
 
     public ProductController(ProductService service, UserService userService) {
         this.productService = service;
-        this.userService = userService;
     }
 
     @GetMapping("/all")
@@ -52,5 +54,16 @@ public class ProductController {
         }
     }
 
+//    mise en situation deactivation par SKU
+    @PutMapping("{sku}/deactivate")
+//    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deactivateProduct(@PathVariable String sku) {
+        try {
+            productService.deactivateProduct(sku);
+            return ResponseEntity.ok("{\"message\":\"Product with SKU " + sku + " has been deactivated.\"}");
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
 
 }

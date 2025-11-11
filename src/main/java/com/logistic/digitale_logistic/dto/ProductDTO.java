@@ -15,13 +15,11 @@ public class    ProductDTO {
     @NotBlank
     @Size(max = 255)
     private String name;
-// a
+
     @NotBlank
     @Size(max = 255)
     private String category;
-//    @NotBlank
-//    @Size(max = 255)
-//    private String category;
+
     @NotBlank
     @NotNull
     @PositiveOrZero
@@ -34,3 +32,4 @@ public class    ProductDTO {
 
     private Boolean active;
 }
+

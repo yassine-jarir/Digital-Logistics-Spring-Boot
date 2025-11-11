@@ -20,10 +20,10 @@ public class ShipmentLine {
     private Shipment shipment;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sales_order_line_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = false)
     @ToString.Exclude
-    private SoLine salesOrderLine;
+    private Product product;
 
-    @Column(name = "quantity_shipped", nullable = false)
-    private Integer quantityShipped;
+    @Column(name = "quantity", nullable = false)
+    private Integer quantity;
 }

@@ -37,10 +37,8 @@ public class Inventory {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Transient
-    public Integer getQtyAvailable() {
-        if (qtyOnHand == null) return null;
-        if (qtyReserved == null) return qtyOnHand;
-        return qtyOnHand - qtyReserved;
-    }
+    // Map DB-generated stored column qty_available = qty_on_hand - qty_reserved
+    // Mark as read-only so JPA won't try to insert/update it.
+    @Column(name = "qty_available", insertable = false, updatable = false)
+    private Integer qtyAvailable;
 }
