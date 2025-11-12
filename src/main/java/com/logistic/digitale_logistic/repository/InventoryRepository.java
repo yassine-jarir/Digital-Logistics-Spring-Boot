@@ -19,6 +19,9 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     @Query("SELECT i FROM Inventory i WHERE i.product.sku = :sku")
     Optional<Inventory> findByProductSku(@Param("sku") String sku);
 
+    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId ORDER BY i.qtyAvailable DESC")
+    List<Inventory> findAllByProductIdOrderByQtyAvailableDesc(@Param("productId") Long productId);
+
     @Query("SELECT COALESCE(SUM(i.qtyReserved), 0) FROM Inventory i WHERE i.product.id = :productId")
     Integer findTotalQtyReservedByProductId(@Param("productId") Long productId);
 }

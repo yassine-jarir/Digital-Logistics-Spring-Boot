@@ -48,4 +48,3 @@ public class ReservationController {
         return inventoryReservationService.processOrderReservation(salesOrderId);
     }
 }
-

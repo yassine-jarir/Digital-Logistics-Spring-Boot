@@ -40,7 +40,6 @@ public class ShipmentController {
      * @return updated shipment
      */
     @PostMapping("/{shipmentId}/ship")
-    @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
     public ShipmentDTO shipShipment(@PathVariable Long shipmentId, @RequestBody ShipRequest request) {
         return shipmentService.shipShipment(shipmentId, request.getTrackingNumber(), request.getCarrier());
@@ -53,49 +52,11 @@ public class ShipmentController {
      * @return updated shipment
      */
     @PostMapping("/{shipmentId}/deliver")
-    @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
     public ShipmentDTO markAsDelivered(@PathVariable Long shipmentId) {
         return shipmentService.markAsDelivered(shipmentId);
     }
 
-    /**
-     * Get a shipment by ID
-     *
-     * @param shipmentId the shipment ID
-     * @return shipment details
-     */
-    @GetMapping("/{shipmentId}")
-    @PreAuthorize("hasRole('CLIENT')")
-    @ResponseStatus(HttpStatus.OK)
-    public ShipmentDTO getShipment(@PathVariable Long shipmentId) {
-        return shipmentService.getShipmentById(shipmentId);
-    }
-
-    /**
-     * Get all shipments for a sales order
-     *
-     * @param salesOrderId the sales order ID
-     * @return list of shipments
-     */
-    @GetMapping("/sales-order/{salesOrderId}")
-    @PreAuthorize("hasRole('CLIENT')")
-    @ResponseStatus(HttpStatus.OK)
-    public List<ShipmentDTO> getShipmentsForSalesOrder(@PathVariable Long salesOrderId) {
-        return shipmentService.getShipmentsForSalesOrder(salesOrderId);
-    }
-
-    /**
-     * Cancel a planned shipment
-     *
-     * @param shipmentId the shipment ID
-     */
-    @DeleteMapping("/{shipmentId}")
-    @PreAuthorize("hasRole('CLIENT')")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void cancelShipment(@PathVariable Long shipmentId) {
-        shipmentService.cancelShipment(shipmentId);
-    }
 
     @Data
     @NoArgsConstructor

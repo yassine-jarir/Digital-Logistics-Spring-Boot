@@ -152,21 +152,5 @@ public class BackorderFulfillmentService {
         return backorderRepository.findBySalesOrderId(salesOrderId);
     }
 
-    /**
-     * Cancel a backorder
-     */
-    @Transactional
-    public void cancelBackorder(Long backorderId) {
-        Backorder backorder = backorderRepository.findById(backorderId)
-                .orElseThrow(() -> new IllegalArgumentException("Backorder not found: " + backorderId));
-
-        if (backorder.getStatus() == BackorderStatus.FULFILLED) {
-            throw new IllegalStateException("Cannot cancel a fulfilled backorder");
-        }
-
-        backorder.setStatus(BackorderStatus.CANCELLED);
-        backorderRepository.save(backorder);
-
-        log.info("Backorder {} cancelled", backorderId);
-    }
+ 
 }

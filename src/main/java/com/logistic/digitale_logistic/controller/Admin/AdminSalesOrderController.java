@@ -28,17 +28,6 @@ public class AdminSalesOrderController {
         return salesOrderService.getAllSalesOrders();
     }
 
-    /**
-     * Get a specific sales order by ID
-     *
-     * @param id the sales order ID
-     * @return the sales order details
-     */
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @ResponseStatus(HttpStatus.OK)
-    public SalesOrderDTO getSalesOrderById(@PathVariable Long id) {
-        return salesOrderService.getSalesOrderById(id);
-    }
+
 }
 

@@ -4,20 +4,14 @@ import com.logistic.digitale_logistic.dto.BackorderDTO;
 import com.logistic.digitale_logistic.dto.ReservationResultDTO;
 import com.logistic.digitale_logistic.entity.*;
 import com.logistic.digitale_logistic.enums.BackorderStatus;
-import com.logistic.digitale_logistic.enums.MovementType;
-import com.logistic.digitale_logistic.enums.PurchaseOrderStatus;
-import com.logistic.digitale_logistic.mapper.BackorderMapper;
 import com.logistic.digitale_logistic.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -25,19 +19,12 @@ import java.util.Optional;
 public class InventoryReservationService {
 
     private final InventoryRepository inventoryRepository;
-    private final InventoryMovementRepository inventoryMovementRepository;
     private final BackorderRepository backorderRepository;
     private final SalesOrderRepository salesOrderRepository;
     private final SoLineRepository soLineRepository;
-    private final PurchaseOrderRepository purchaseOrderRepository;
-    private final SupplierRepository supplierRepository;
-    private final BackorderMapper backorderMapper;
 
     /**
-     * Main entry point for automatic reservation and backorder creation
-     *
-     * @param salesOrderId the sales order to process
-     * @return reservation result with backorder information
+     * Main reservation process - returns structured response for Postman
      */
     @Transactional
     public ReservationResultDTO processOrderReservation(Long salesOrderId) {
@@ -50,152 +37,147 @@ public class InventoryReservationService {
             throw new IllegalStateException("Sales order must be in CREATED status. Current status: " + salesOrder.getStatus());
         }
 
+        Warehouse selectedWarehouse = salesOrder.getWarehouse();
         List<BackorderDTO> backorders = new ArrayList<>();
-        boolean hasBackorders = false;
+        List<String> fullyReservedProducts = new ArrayList<>();
+        List<String> partiallyReservedProducts = new ArrayList<>();
+        List<String> noStockProducts = new ArrayList<>();
+
+        boolean anyReserved = false;
         boolean fullyReserved = true;
 
         // Process each line
         for (SoLine soLine : salesOrder.getLines()) {
-            ReservationLineResult lineResult = processLineReservation(soLine, salesOrder);
+            Product product = soLine.getProduct();
+            int requestedQty = soLine.getOrderedQuantity();
 
-            if (lineResult.hasBackorder()) {
-                hasBackorders = true;
-                fullyReserved = false;
-                backorders.addAll(lineResult.getBackorders());
+            log.debug("Processing product: {} - Requested: {}", product.getSku(), requestedQty);
+
+            int reservedQty = 0;
+            int remainingQty = requestedQty;
+
+            // STEP 1: Check selected warehouse first
+            Inventory selectedInventory = inventoryRepository.findByProduct_IdAndWarehouse_Id(
+                    product.getId(), selectedWarehouse.getId()).orElse(null);
+
+            if (selectedInventory != null && selectedInventory.getQtyAvailable() > 0) {
+                int toReserve = Math.min(selectedInventory.getQtyAvailable(), remainingQty);
+                reserveInventory(selectedInventory, toReserve);
+                reservedQty += toReserve;
+                remainingQty -= toReserve;
+                log.info("Reserved {} units of {} from selected warehouse: {}",
+                        toReserve, product.getSku(), selectedWarehouse.getName());
             }
 
-            if (lineResult.getReservedQuantity() < soLine.getOrderedQuantity()) {
-                fullyReserved = false;
+            // STEP 2: Check other warehouses if needed
+            if (remainingQty > 0) {
+                List<Inventory> otherInventories = inventoryRepository.findAllByProductIdOrderByQtyAvailableDesc(product.getId())
+                        .stream()
+                        .filter(inv -> !inv.getWarehouse().getId().equals(selectedWarehouse.getId()))
+                        .toList();
+
+                for (Inventory inv : otherInventories) {
+                    if (remainingQty <= 0) break;
+                    int available = inv.getQtyAvailable();
+                    if (available > 0) {
+                        int toReserve = Math.min(available, remainingQty);
+                        reserveInventory(inv, toReserve);
+                        reservedQty += toReserve;
+                        remainingQty -= toReserve;
+                        log.info("Reserved {} units of {} from other warehouse: {}",
+                                toReserve, product.getSku(), inv.getWarehouse().getName());
+                    }
+                }
             }
+
+            // STEP 3: Categorize result and handle backorders
+            if (reservedQty == 0) {
+                // No stock available anywhere
+                noStockProducts.add(product.getSku());
+                fullyReserved = false;
+                log.warn("No stock available for product: {}", product.getSku());
+
+            } else if (remainingQty > 0) {
+                // Partial reservation
+                partiallyReservedProducts.add(product.getSku());
+                anyReserved = true;
+                fullyReserved = false;
+
+                // Create backorder for remaining quantity
+                Backorder backorder = createBackorder(soLine, product, selectedWarehouse, remainingQty);
+                backorders.add(convertToBackorderDTO(backorder));
+                log.info("Partially reserved {} units, backordered {} units for product: {}",
+                        reservedQty, remainingQty, product.getSku());
+
+            } else {
+                // Full reservation
+                fullyReservedProducts.add(product.getSku());
+                anyReserved = true;
+                log.info("Fully reserved {} units for product: {}", reservedQty, product.getSku());
+            }
+
+            // Update SO line reserved quantity
+            soLine.setReservedQuantity(reservedQty);
+            soLineRepository.save(soLine);
         }
 
         // Update sales order status
-        String newStatus = determineOrderStatus(salesOrder);
+        String newStatus = anyReserved ? "RESERVED" : "CREATED";
         salesOrder.setStatus(newStatus);
         salesOrder.setUpdatedAt(LocalDateTime.now());
         salesOrderRepository.save(salesOrder);
 
-        log.info("Reservation completed for SO-{}: Status={}, FullyReserved={}, HasBackorders={}",
-                salesOrder.getOrderNumber(), newStatus, fullyReserved, hasBackorders);
+        // Build response with clear messages
+        String message = buildResponseMessage(
+                fullyReservedProducts,
+                partiallyReservedProducts,
+                noStockProducts,
+                selectedWarehouse.getName()
+        );
+
+        log.info("Reservation completed for SO-{}: Status={}, Message={}",
+                salesOrder.getOrderNumber(), newStatus, message);
 
         return ReservationResultDTO.builder()
                 .salesOrderId(salesOrderId)
                 .salesOrderNumber(salesOrder.getOrderNumber())
                 .status(newStatus)
-                .fullyReserved(fullyReserved)
-                .hasBackorders(hasBackorders)
+                .fullyReserved(fullyReserved && anyReserved)
+                .hasBackorders(!backorders.isEmpty())
                 .backorders(backorders)
-                .message(buildResultMessage(fullyReserved, hasBackorders, backorders.size()))
+                .message(message)
                 .build();
     }
 
     /**
-     * Process reservation for a single SO line
+     * Reserve inventory and update qtyReserved
      */
-    private ReservationLineResult processLineReservation(SoLine soLine, SalesOrder salesOrder) {
-        Product product = soLine.getProduct();
-        Warehouse warehouse = salesOrder.getWarehouse();
-        int requestedQuantity = soLine.getOrderedQuantity();
-
-        log.debug("Processing line - Product: {}, Requested: {}", product.getSku(), requestedQuantity);
-
-        // Get current inventory
-        Optional<Inventory> inventoryOpt = inventoryRepository.findByProduct_IdAndWarehouse_Id(
-                product.getId(), warehouse.getId());
-
-        int reservedQty = 0;
-        List<BackorderDTO> backorders = new ArrayList<>();
-
-        if (inventoryOpt.isPresent()) {
-            Inventory inventory = inventoryOpt.get();
-            int available = inventory.getQtyAvailable();
-
-            log.debug("Available stock: {}", available);
-
-            if (available >= requestedQuantity) {
-                // Full reservation
-                reservedQty = requestedQuantity;
-                reserveInventory(inventory, reservedQty, salesOrder, product);
-                log.info("Fully reserved {} units of {}", reservedQty, product.getSku());
-            } else if (available > 0) {
-                // Partial reservation
-                reservedQty = available;
-                reserveInventory(inventory, reservedQty, salesOrder, product);
-
-                int backorderQty = requestedQuantity - reservedQty;
-                Backorder backorder = createBackorder(soLine, product, warehouse, backorderQty);
-                backorders.add(convertToDTO(backorder));
-
-                log.info("Partially reserved {} units, backordered {} units of {}",
-                        reservedQty, backorderQty, product.getSku());
-            } else {
-                // No stock available - full backorder
-                Backorder backorder = createBackorder(soLine, product, warehouse, requestedQuantity);
-                backorders.add(convertToDTO(backorder));
-
-                // Trigger automatic PO
-                triggerAutomaticPurchaseOrder(backorder, product, warehouse, requestedQuantity);
-
-                log.info("No stock available, created full backorder for {} units of {}",
-                        requestedQuantity, product.getSku());
-            }
-        } else {
-            // No inventory record - create backorder and trigger PO
-            Backorder backorder = createBackorder(soLine, product, warehouse, requestedQuantity);
-            backorders.add(convertToDTO(backorder));
-
-            triggerAutomaticPurchaseOrder(backorder, product, warehouse, requestedQuantity);
-
-            log.info("No inventory record found, created backorder and triggered PO for {} units of {}",
-                    requestedQuantity, product.getSku());
-        }
-
-        // Update SO line reserved quantity
-        soLine.setReservedQuantity(reservedQty);
-        soLineRepository.save(soLine);
-
-        return new ReservationLineResult(reservedQty, backorders);
-    }
-
-    /**
-     * Reserve inventory and create movement record
-     */
-    private void reserveInventory(Inventory inventory, int quantity, SalesOrder salesOrder, Product product) {
-        // Update inventory - increase reserved, which automatically decreases available
-        inventory.setQtyReserved(inventory.getQtyReserved() + quantity);
+    private void reserveInventory(Inventory inventory, int qty) {
+        inventory.setQtyReserved(inventory.getQtyReserved() + qty);
         inventory.setUpdatedAt(LocalDateTime.now());
         inventoryRepository.save(inventory);
-
-        // Note: We don't create a RESERVED movement here because the database
-        // only supports INBOUND, OUTBOUND, and ADJUSTMENT movement types.
-        // The reservation is tracked through inventory.qty_reserved field.
-        // When the order ships, an OUTBOUND movement will be created.
-
-        log.debug("Inventory reserved: Product={}, Warehouse={}, Qty={}, NewReserved={}",
-                product.getSku(), inventory.getWarehouse().getName(), quantity, inventory.getQtyReserved());
     }
 
     /**
-     * Create a backorder record
+     * Create backorder record
      */
-    private Backorder createBackorder(SoLine soLine, Product product, Warehouse warehouse, int quantity) {
+    private Backorder createBackorder(SoLine soLine, Product product, Warehouse warehouse, int qty) {
         Backorder backorder = new Backorder();
         backorder.setSoLine(soLine);
         backorder.setProduct(product);
         backorder.setWarehouse(warehouse);
-        backorder.setQuantityBackordered(quantity);
+        backorder.setQuantityBackordered(qty);
         backorder.setQuantityFulfilled(0);
         backorder.setStatus(BackorderStatus.PENDING);
-        backorder.setNotes("Auto-created during order reservation");
+        backorder.setNotes("Auto-created during order reservation - partial stock available");
         backorder.setCreatedAt(LocalDateTime.now());
-
         return backorderRepository.save(backorder);
     }
 
     /**
      * Convert Backorder entity to DTO
      */
-    private BackorderDTO convertToDTO(Backorder backorder) {
+    private BackorderDTO convertToBackorderDTO(Backorder backorder) {
         return BackorderDTO.builder()
                 .id(backorder.getId())
                 .soLineId(backorder.getSoLine().getId())
@@ -216,134 +198,48 @@ public class InventoryReservationService {
     }
 
     /**
-     * Trigger automatic purchase order to supplier when no stock is available
+     * Build clear response message for Postman based on reservation results
      */
-    private void triggerAutomaticPurchaseOrder(Backorder backorder, Product product,
-                                               Warehouse warehouse, int quantity) {
-        log.info("Triggering automatic PO for Product: {}, Quantity: {}", product.getSku(), quantity);
+    private String buildResponseMessage(List<String> fullyReserved,
+                                       List<String> partiallyReserved,
+                                       List<String> noStock,
+                                       String selectedWarehouse) {
 
-        // Get default supplier for product (simplified - you may have product-supplier mapping)
-        Supplier supplier = getSupplierForProduct();
+        List<String> messages = new ArrayList<>();
 
-        if (supplier == null) {
-            log.warn("No supplier found for product {}. Cannot create automatic PO.", product.getSku());
-            backorder.setNotes(backorder.getNotes() + " | WARNING: No supplier found for automatic PO");
-            backorderRepository.save(backorder);
-            return;
+        // Message for fully reserved products
+        if (!fullyReserved.isEmpty()) {
+            messages.add(String.format("✅ Fully reserved: %s", String.join(", ", fullyReserved)));
         }
 
-        // Create Purchase Order
-        PurchaseOrder po = new PurchaseOrder();
-        po.setPoNumber(generatePONumber());
-        po.setSupplier(supplier);
-        po.setWarehouse(warehouse);
-        po.setStatus(PurchaseOrderStatus.DRAFT);
-        po.setOrderDate(LocalDate.now());
-        po.setCreatedAt(LocalDateTime.now());
-        po.setUpdatedAt(LocalDateTime.now());
+        // Message for partially reserved products (with backorders)
+        if (!partiallyReserved.isEmpty()) {
+            messages.add(String.format("⚠️ Partially reserved (backorders created): %s",
+                    String.join(", ", partiallyReserved)));
+        }
 
-        // Create PO Line
-        PoLine poLine = new PoLine();
-        poLine.setPurchaseOrder(po);
-        poLine.setProduct(product);
-        poLine.setOrderedQuantity(calculatePurchaseQuantity(product, warehouse, quantity));
-        poLine.setReceivedQuantity(0);
-        poLine.setUnitCost(product.getCostPrice());
+        // Message for products with no stock
+        if (!noStock.isEmpty()) {
+            messages.add(String.format("❌ No stock available: %s - Manager must contact supplier",
+                    String.join(", ", noStock)));
+        }
 
-        po.setLines(List.of(poLine));
+        // Overall summary
+        if (messages.isEmpty()) {
+            return "No products were processed";
+        }
 
-        PurchaseOrder savedPO = purchaseOrderRepository.save(po);
-
-        // Link backorder to PO
-        backorder.setTriggeredPurchaseOrder(savedPO);
-        backorderRepository.save(backorder);
-
-        log.info("Created automatic PO: {} for backorder", savedPO.getPoNumber());
-    }
-
-    /**
-     * Get supplier for a product (simplified version)
-     */
-    private Supplier getSupplierForProduct() {
-        // Simplified: get first active supplier
-        return supplierRepository.findAll().stream()
-                .filter(Supplier::getActive)
-                .findFirst()
-                .orElse(null);
-    }
-
-    /**
-     * Calculate purchase quantity considering safety stock and pending backorders
-     */
-    private int calculatePurchaseQuantity(Product product, Warehouse warehouse, int backorderQty) {
-        // Get total pending backorders for this product in this warehouse
-        Integer totalPendingBackorders = backorderRepository.getTotalPendingBackorderQuantity(
-                product.getId(), warehouse.getId());
-
-        // Purchase enough to cover all pending backorders plus some buffer
-        int safetyStock = 10; // Configurable safety stock
-        return Math.max(backorderQty, totalPendingBackorders != null ? totalPendingBackorders : 0) + safetyStock;
-    }
-
-    /**
-     * Determine sales order status based on line reservations
-     */
-    private String determineOrderStatus(SalesOrder salesOrder) {
-        // Check if ANY lines have been reserved
-        boolean anyReserved = salesOrder.getLines().stream()
-                .anyMatch(line -> line.getReservedQuantity() > 0);
-
-        // If any stock is reserved, mark as RESERVED (even if partial)
-        // This matches your DB constraint: CREATED, RESERVED, SHIPPED, DELIVERED, CANCELLED
-        if (anyReserved) {
-            return "RESERVED";
+        String summary;
+        if (noStock.isEmpty() && partiallyReserved.isEmpty()) {
+            summary = "Order fully reserved and ready for shipment from warehouse: " + selectedWarehouse;
+        } else if (!fullyReserved.isEmpty() && !partiallyReserved.isEmpty() && noStock.isEmpty()) {
+            summary = "Order partially reserved. Some items have backorders. Check backorders list for details.";
+        } else if (!noStock.isEmpty() && fullyReserved.isEmpty() && partiallyReserved.isEmpty()) {
+            summary = "No stock available in any warehouse. Manager should contact supplier to arrange stock replenishment.";
         } else {
-            return "CREATED";
-        }
-    }
-
-    private boolean hasPartialReservations(SalesOrder salesOrder) {
-        return salesOrder.getLines().stream()
-                .anyMatch(line -> line.getReservedQuantity() > 0);
-    }
-
-    private String buildResultMessage(boolean fullyReserved, boolean hasBackorders, int backorderCount) {
-        if (fullyReserved) {
-            return "Order fully reserved and ready for shipment.";
-        } else if (hasBackorders) {
-            return String.format("Order partially reserved. %d backorder(s) created. " +
-                    "Automatic purchase orders triggered where needed.", backorderCount);
-        } else {
-            return "Order reservation completed with partial availability.";
-        }
-    }
-
-    private String generatePONumber() {
-        return "PO-AUTO-" + System.currentTimeMillis();
-    }
-
-    /**
-     * Internal class to hold line reservation results
-     */
-    private static class ReservationLineResult {
-        private final int reservedQuantity;
-        private final List<BackorderDTO> backorders;
-
-        public ReservationLineResult(int reservedQuantity, List<BackorderDTO> backorders) {
-            this.reservedQuantity = reservedQuantity;
-            this.backorders = backorders;
+            summary = "Mixed reservation result. Some items reserved, some backordered, some unavailable.";
         }
 
-        public int getReservedQuantity() {
-            return reservedQuantity;
-        }
-
-        public List<BackorderDTO> getBackorders() {
-            return backorders;
-        }
-
-        public boolean hasBackorder() {
-            return !backorders.isEmpty();
-        }
+        return summary + " | " + String.join(" | ", messages);
     }
 }

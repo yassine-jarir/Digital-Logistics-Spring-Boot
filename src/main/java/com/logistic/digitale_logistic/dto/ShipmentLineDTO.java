@@ -16,5 +16,6 @@ public class ShipmentLineDTO {
     private String productName;
     private String productSku;
     private Integer quantity;
+    private Long salesOrderLineId;
+    private Integer quantityShipped;
 }
-

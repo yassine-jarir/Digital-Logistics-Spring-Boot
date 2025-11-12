@@ -97,10 +97,14 @@ public class PurchaseOrderService {
         return purchaseOrderMapper.toDTO(po);
     }
 
-    // ========== 3. RECEIVE PURCHASE ORDER ==========
+    /**
+     * ========== 3B. RECEIVE ENTIRE PURCHASE ORDER (SIMPLIFIED) ==========
+     * Automatically receives ALL lines with their full ordered quantities
+     * Just pass the PO ID - no need to specify quantities per line
+     */
     @Transactional
-    public PurchaseOrderDTO receivePurchaseOrder(Long id, List<ReceiveLineDTO> receivedLines) {
-        log.info("Receiving Purchase Order ID: {}", id);
+    public PurchaseOrderDTO receiveEntirePurchaseOrder(Long id) {
+        log.info("Receiving ENTIRE Purchase Order ID: {}", id);
 
         PurchaseOrder po = purchaseOrderRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Purchase Order not found"));
@@ -110,19 +114,21 @@ public class PurchaseOrderService {
             throw new BusinessException("Cannot receive: Purchase Order must be APPROVED first");
         }
 
-        // Process each received line
-        for (ReceiveLineDTO receiveDTO : receivedLines) {
-            PoLine poLine = po.getLines().stream()
-                    .filter(line -> line.getId().equals(receiveDTO.getPoLineId()))
-                    .findFirst()
-                    .orElseThrow(() -> new BusinessException("PO Line not found: " + receiveDTO.getPoLineId()));
+        if (po.getLines().isEmpty()) {
+            throw new BusinessException("Purchase Order has no lines to receive");
+        }
 
-            Integer qtyToReceive = receiveDTO.getReceivedQuantity();
+        // Process ALL lines automatically with their full ordered quantity
+        for (PoLine poLine : po.getLines()) {
+            Integer qtyToReceive = poLine.getOrderedQuantity() - poLine.getReceivedQuantity();
 
-            // Validate quantity
             if (qtyToReceive <= 0) {
-                throw new BusinessException("Received quantity must be greater than 0");
+                log.warn("PO Line {} already fully received, skipping", poLine.getId());
+                continue;
             }
+
+            log.info("Receiving {} units of {} (PO Line ID: {})",
+                    qtyToReceive, poLine.getProduct().getSku(), poLine.getId());
 
             // Update PO Line
             poLine.setReceivedQuantity(poLine.getReceivedQuantity() + qtyToReceive);
@@ -134,6 +140,9 @@ public class PurchaseOrderService {
             inventory.setUpdatedAt(LocalDateTime.now());
             inventoryRepository.save(inventory);
 
+            log.info("Updated inventory for {} in {}: qtyOnHand = {}",
+                    poLine.getProduct().getSku(), po.getWarehouse().getName(), inventory.getQtyOnHand());
+
             // Create Inventory Movement (INBOUND)
             InventoryMovement movement = new InventoryMovement();
             movement.setProduct(poLine.getProduct());
@@ -142,11 +151,11 @@ public class PurchaseOrderService {
             movement.setQuantity(qtyToReceive);
             movement.setPurchaseOrder(po);
             movement.setReferenceDoc(po.getPoNumber());
-            movement.setNotes("Received from PO: " + po.getPoNumber());
+            movement.setNotes("Full receipt from PO: " + po.getPoNumber());
             movement.setOccurredAt(LocalDateTime.now());
             inventoryMovementRepository.save(movement);
 
-            // ** NEW: Automatically allocate to pending backorders **
+            // Automatically allocate to pending backorders
             log.info("Checking for pending backorders for Product ID: {}, Warehouse ID: {}",
                     poLine.getProduct().getId(), po.getWarehouse().getId());
 
@@ -169,32 +178,11 @@ public class PurchaseOrderService {
 
         po = purchaseOrderRepository.save(po);
 
-        log.info("Purchase Order {} received successfully", po.getPoNumber());
+        log.info("Purchase Order {} fully received successfully with {} lines", po.getPoNumber(), po.getLines().size());
 
         return purchaseOrderMapper.toDTO(po);
     }
 
-    // ========== 4. CANCEL PURCHASE ORDER ==========
-    @Transactional
-    public PurchaseOrderDTO cancelPurchaseOrder(Long id) {
-        PurchaseOrder po = purchaseOrderRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Purchase Order not found"));
-
-        // Validate status - can only cancel DRAFT or APPROVED
-        if (po.getStatus() == PurchaseOrderStatus.RECEIVED) {
-            throw new BusinessException("Cannot cancel: Purchase Order is already RECEIVED");
-        }
-
-        if (po.getStatus() == PurchaseOrderStatus.CANCELED) {
-            throw new BusinessException("Purchase Order is already CANCELED");
-        }
-
-        po.setStatus(PurchaseOrderStatus.CANCELED);
-        po.setUpdatedAt(LocalDateTime.now());
-
-        po = purchaseOrderRepository.save(po);
-        return purchaseOrderMapper.toDTO(po);
-    }
 
     // ========== HELPER METHODS ==========
 
@@ -216,11 +204,7 @@ public class PurchaseOrderService {
                 .toList();
     }
 
-    public List<PurchaseOrderDTO> getPurchaseOrdersByWarehouse(Long warehouseId) {
-        return purchaseOrderRepository.findByWarehouseId(warehouseId).stream()
-                .map(purchaseOrderMapper::toDTO)
-                .toList();
-    }
+
 
     private Inventory findOrCreateInventory(Product product, Warehouse warehouse) {
         // Try to find existing inventory using optimized query

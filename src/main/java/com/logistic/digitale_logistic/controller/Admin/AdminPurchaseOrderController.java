@@ -60,16 +60,5 @@ public class AdminPurchaseOrderController {
         return purchaseOrderService.approvePurchaseOrder(id);
     }
 
-    /**
-     * Cancel a purchase order (DRAFT or APPROVED → CANCELED)
-     *
-     * @param id the ID of the purchase order
-     * @return the canceled purchase order
-     */
-    @PatchMapping("/{id}/cancel")
-    @PreAuthorize("hasRole('ADMIN')")
-    @ResponseStatus(HttpStatus.OK)
-    public PurchaseOrderDTO cancelPurchaseOrder(@PathVariable Long id) {
-        return purchaseOrderService.cancelPurchaseOrder(id);
-    }
+
 }

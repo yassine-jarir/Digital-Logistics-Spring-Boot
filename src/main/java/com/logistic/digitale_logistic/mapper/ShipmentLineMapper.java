@@ -11,6 +11,7 @@ public interface ShipmentLineMapper {
     @Mapping(source = "product.id", target = "productId")
     @Mapping(source = "product.name", target = "productName")
     @Mapping(source = "product.sku", target = "productSku")
+    @Mapping(source = "salesOrderLine.id", target = "salesOrderLineId")
+    @Mapping(source = "quantityShipped", target = "quantityShipped")
     ShipmentLineDTO toDTO(ShipmentLine shipmentLine);
 }
-

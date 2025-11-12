@@ -2,6 +2,7 @@ package com.logistic.digitale_logistic.service.client;
 
 import com.logistic.digitale_logistic.dto.ReservationResultDTO;
 import com.logistic.digitale_logistic.dto.SalesOrderDTO;
+import com.logistic.digitale_logistic.dto.SalesOrderWithReservationDTO;
 import com.logistic.digitale_logistic.dto.SoLineDTO;
 import com.logistic.digitale_logistic.entity.*;
 import com.logistic.digitale_logistic.mapper.SalesOrderMapper;
@@ -30,7 +31,7 @@ public class SalesOrderService {
     private final InventoryReservationService inventoryReservationService;
 
     @Transactional
-    public SalesOrderDTO createSalesOrder(SalesOrderDTO dto) {
+    public SalesOrderWithReservationDTO createSalesOrder(SalesOrderDTO dto) {
         log.info("Creating sales order for client ID: {}, warehouse ID: {}", dto.getClientId(), dto.getWarehouseId());
 
         // Validate client exists
@@ -94,9 +95,10 @@ public class SalesOrderService {
         log.info("Sales order created: {} with {} lines", savedOrder.getOrderNumber(), savedOrder.getLines().size());
 
         // 💥 AUTOMATIC RESERVATION - Happens immediately after order creation!
+        ReservationResultDTO reservationResult = null;
         try {
             log.info("🚀 Triggering automatic reservation for order: {}", savedOrder.getOrderNumber());
-            ReservationResultDTO reservationResult = inventoryReservationService.processOrderReservation(savedOrder.getId());
+            reservationResult = inventoryReservationService.processOrderReservation(savedOrder.getId());
 
             log.info("✅ Automatic reservation completed - Status: {}, Fully Reserved: {}, Backorders: {}",
                     reservationResult.getStatus(),
@@ -108,11 +110,22 @@ public class SalesOrderService {
 
         } catch (Exception e) {
             log.error("❌ Error during automatic reservation for order {}: {}", savedOrder.getOrderNumber(), e.getMessage(), e);
-            // Don't fail the order creation if reservation fails
-            // The order is created but not reserved - can be retried manually
+            // Create error reservation result
+            reservationResult = ReservationResultDTO.builder()
+                    .salesOrderId(savedOrder.getId())
+                    .salesOrderNumber(savedOrder.getOrderNumber())
+                    .status("CREATED")
+                    .fullyReserved(false)
+                    .hasBackorders(false)
+                    .message("⚠️ Reservation failed: " + e.getMessage() + ". Please retry manually or contact support.")
+                    .build();
         }
 
-        return salesOrderMapper.toDTO(savedOrder);
+        // Return combined response
+        return SalesOrderWithReservationDTO.builder()
+                .salesOrder(salesOrderMapper.toDTO(savedOrder))
+                .reservationResult(reservationResult)
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -129,12 +142,6 @@ public class SalesOrderService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public SalesOrderDTO getSalesOrderById(Long id) {
-        SalesOrder salesOrder = salesOrderRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Sales order not found with ID: " + id));
-        return salesOrderMapper.toDTO(salesOrder);
-    }
 
     private String generateOrderNumber() {
         return "SO-" + System.currentTimeMillis();
