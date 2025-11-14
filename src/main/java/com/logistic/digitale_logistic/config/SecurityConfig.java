@@ -19,6 +19,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Allow Swagger UI and OpenAPI endpoints
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
@@ -35,5 +37,3 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder(); // hashing algorithm
     }
 }
-
-

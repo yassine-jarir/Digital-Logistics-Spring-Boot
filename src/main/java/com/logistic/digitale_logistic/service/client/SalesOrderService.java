@@ -94,22 +94,15 @@ public class SalesOrderService {
 
         log.info("Sales order created: {} with {} lines", savedOrder.getOrderNumber(), savedOrder.getLines().size());
 
-        // 💥 AUTOMATIC RESERVATION - Happens immediately after order creation!
+        // AUTOMATIC RESERVATION - Happens immediately after order creation!
         ReservationResultDTO reservationResult = null;
         try {
-            log.info("🚀 Triggering automatic reservation for order: {}", savedOrder.getOrderNumber());
             reservationResult = inventoryReservationService.processOrderReservation(savedOrder.getId());
-
-            log.info("✅ Automatic reservation completed - Status: {}, Fully Reserved: {}, Backorders: {}",
-                    reservationResult.getStatus(),
-                    reservationResult.isFullyReserved(),
-                    reservationResult.isHasBackorders());
 
             // Refresh the order to get updated status and reserved quantities
             savedOrder = salesOrderRepository.findById(savedOrder.getId()).orElse(savedOrder);
 
         } catch (Exception e) {
-            log.error("❌ Error during automatic reservation for order {}: {}", savedOrder.getOrderNumber(), e.getMessage(), e);
             // Create error reservation result
             reservationResult = ReservationResultDTO.builder()
                     .salesOrderId(savedOrder.getId())
@@ -117,7 +110,7 @@ public class SalesOrderService {
                     .status("CREATED")
                     .fullyReserved(false)
                     .hasBackorders(false)
-                    .message("⚠️ Reservation failed: " + e.getMessage() + ". Please retry manually or contact support.")
+                    .message("! Reservation failed: " + e.getMessage() + ". Please retry manually or contact support.")
                     .build();
         }
 
