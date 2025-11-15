@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('sonarqube-token')
-        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_HOST_URL = 'http://sonarqube:9000'
     }
 
     stages {
@@ -29,8 +29,8 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                echo 'Running unit tests...'
-                sh './mvnw test'
+                echo 'Running unit tests with Docker PostgreSQL...'
+                sh './mvnw test -Dspring.profiles.active=test'
             }
             post {
                 always {
@@ -118,4 +118,3 @@ pipeline {
         }
     }
 }
-
