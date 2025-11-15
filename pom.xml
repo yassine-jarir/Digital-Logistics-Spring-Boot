@@ -28,6 +28,29 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+		<!-- SonarQube Properties -->
+		<sonar.projectKey>digitale-logistic</sonar.projectKey>
+		<sonar.projectName>Digital Logistics Supply Chain Platform</sonar.projectName>
+		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+		<sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+		<sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>
+			**/dto/**,
+			**/mapper/**,
+			**/config/**,
+			**/entity/**,
+			**/enums/**,
+			**/*Application.java
+		</sonar.exclusions>
+		<sonar.coverage.exclusions>
+			**/dto/**,
+			**/mapper/**,
+			**/config/**,
+			**/entity/**,
+			**/enums/**,
+			**/*Application.java
+		</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
             <!-- Spring Security starter: provides authentication, authorization, and security infrastructure for Spring Boot applications -->
@@ -127,7 +150,37 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
                 </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/mapper/**</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/entity/**</exclude>
+                        <exclude>**/enums/**</exclude>
+                        <exclude>**/*Application.class</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
 
             <plugin>
