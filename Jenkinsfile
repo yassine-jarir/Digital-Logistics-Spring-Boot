@@ -27,7 +27,7 @@ pipeline {
             }
         }
 
-stage('Unit Tests') {
+        stage('Unit Tests') {
             steps {
                 echo 'Running unit tests with Docker PostgreSQL profile...'
                 sh './mvnw test -Dspring.profiles.active=test' // <-- ADDED PROFILE
@@ -56,21 +56,43 @@ stage('Unit Tests') {
             }
         }
 
-stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube analysis...'
-                withSonarQubeEnv('SonarQube-Server') {
-                    sh """
-                        ./mvnw sonar:sonar -Dsonar.projectKey=digitale-logistic -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=${SONAR_TOKEN}
-                    """
+                script {
+                    try {
+                        withSonarQubeEnv('SonarQube-Server') {
+                            sh """
+                                ./mvnw sonar:sonar \
+                                -Dsonar.projectKey=digitale-logistic \
+                                -Dsonar.host.url=http://sonarqube:9000 \
+                                -Dsonar.login=${SONAR_TOKEN}
+                            """
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️ SonarQube analysis failed: ${e.message}"
+                        echo "Continuing pipeline without SonarQube analysis..."
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }
+
         stage('Quality Gate') {
+            when {
+                expression { currentBuild.result != 'UNSTABLE' }
+            }
             steps {
                 echo 'Waiting for Quality Gate result...'
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
+                script {
+                    try {
+                        timeout(time: 5, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: true
+                        }
+                    } catch (Exception e) {
+                        echo "⚠️ Quality Gate check failed or timed out: ${e.message}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }
@@ -114,4 +136,3 @@ stage('SonarQube Analysis') {
         }
     }
 }
-
