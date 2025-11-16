@@ -56,20 +56,16 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+stage('SonarQube Analysis') {
             steps {
                 echo 'Running SonarQube analysis...'
                 withSonarQubeEnv('SonarQube-Server') {
                     sh """
-                        ./mvnw sonar:sonar \
-                        -Dsonar.projectKey=digitale-logistic \
-                        -Dsonar.host.url=http://sonarqube:9000 \  // HARDCODE THE CORRECT SERVICE NAME
-                        -Dsonar.login=${SONAR_TOKEN}
+                        ./mvnw sonar:sonar -Dsonar.projectKey=digitale-logistic -Dsonar.host.url=http://sonarqube:9000 -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
             }
         }
-
         stage('Quality Gate') {
             steps {
                 echo 'Waiting for Quality Gate result...'
