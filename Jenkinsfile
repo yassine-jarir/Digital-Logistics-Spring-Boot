@@ -27,10 +27,10 @@ pipeline {
             }
         }
 
-        stage('Unit Tests') {
+stage('Unit Tests') {
             steps {
-                echo 'Running unit tests...'
-                sh './mvnw test'
+                echo 'Running unit tests with Docker PostgreSQL profile...'
+                sh './mvnw test -Dspring.profiles.active=test' // <-- ADDED PROFILE
             }
             post {
                 always {
