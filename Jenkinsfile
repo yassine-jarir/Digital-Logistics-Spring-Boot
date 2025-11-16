@@ -29,8 +29,8 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                echo 'Running unit tests with Docker PostgreSQL...'
-                sh './mvnw test -Dspring.profiles.active=test'
+                echo 'Running unit tests...'
+                sh './mvnw test'
             }
             post {
                 always {
@@ -63,7 +63,7 @@ pipeline {
                     sh """
                         ./mvnw sonar:sonar \
                         -Dsonar.projectKey=digitale-logistic \
-                        -Dsonar.host.url=${SONAR_HOST_URL} \
+                        -Dsonar.host.url=http://sonarqube:9000 \  // HARDCODE THE CORRECT SERVICE NAME
                         -Dsonar.login=${SONAR_TOKEN}
                     """
                 }
@@ -118,3 +118,4 @@ pipeline {
         }
     }
 }
+
