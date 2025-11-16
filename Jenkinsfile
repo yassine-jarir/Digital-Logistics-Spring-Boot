@@ -29,8 +29,8 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                echo 'Running unit tests with Docker PostgreSQL profile...'
-                sh './mvnw test -Dspring.profiles.active=test' // <-- ADDED PROFILE
+                echo 'Running unit tests with test profile...'
+                sh './mvnw test -Dspring.profiles.active=test'
             }
             post {
                 always {
@@ -117,8 +117,8 @@ pipeline {
                 echo 'Building Docker image...'
                 script {
                     def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
-                    sh "docker build -t digitale-logistic:${appVersion} ."
-                    sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
+                    sh "/usr/bin/docker build -t digitale-logistic:${appVersion} ."
+                    sh "/usr/bin/docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
                 }
             }
         }
