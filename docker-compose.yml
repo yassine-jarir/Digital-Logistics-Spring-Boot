@@ -1,14 +1,14 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres-db:
+  # PostgreSQL Database (using your existing container name)
+  my-postgres:
     image: postgres:17
-    container_name: postgres-db
+    container_name: my-postgres
     environment:
-      POSTGRES_DB: my_db
+      POSTGRES_DB: digital_logistics
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: 1234
     ports:
       - "5432:5432"
     networks:
@@ -38,7 +38,7 @@ services:
       - jenkins-data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
-      postgres-db:
+      my-postgres:
         condition: service_healthy
 
   # SonarQube (optionnel - pour l'analyse de code)
@@ -66,4 +66,3 @@ volumes:
   sonarqube-data:
   sonarqube-logs:
   sonarqube-extensions:
-
