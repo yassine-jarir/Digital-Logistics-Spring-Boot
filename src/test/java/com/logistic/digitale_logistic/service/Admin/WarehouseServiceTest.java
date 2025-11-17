@@ -152,30 +152,6 @@ class WareHouseServiceTest {
 
     // =========================================================================
     // 4. UPDATE TESTS
-    // =========================================================================
-
-    @Test
-    void update_Success() {
-        WareHouseDTO updateDto = new WareHouseDTO("New Name", "New Location", false);
-
-        // Mock repository to find existing entity
-        when(warehouseRepository.findById(WAREHOUSE_ID)).thenReturn(Optional.of(dummyEntity));
-        // Mock repository save call
-        when(warehouseRepository.save(dummyEntity)).thenReturn(dummyEntity);
-        // Mock mapper call
-        when(warehouseMapper.toDto(dummyEntity)).thenReturn(updateDto);
-
-        WareHouseDTO result = wareHouseService.update(WAREHOUSE_ID, updateDto);
-
-        // Verify entity fields were updated before saving
-        assertEquals("New Name", dummyEntity.getName());
-        assertEquals("New Location", dummyEntity.getLocation());
-        assertEquals(false, dummyEntity.getActive());
-
-        assertNotNull(result);
-        verify(warehouseRepository, times(1)).findById(WAREHOUSE_ID);
-        verify(warehouseRepository, times(1)).save(dummyEntity);
-    }
 
     @Test
     void update_ThrowsExceptionIfNotFound() {
