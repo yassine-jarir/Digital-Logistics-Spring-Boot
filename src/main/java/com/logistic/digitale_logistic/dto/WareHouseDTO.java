@@ -13,5 +13,7 @@ public class WareHouseDTO {
     private String location;
     private Boolean active;
 
+    public WareHouseDTO(String newName, String newLocation, boolean b) {
+    }
 }
 
