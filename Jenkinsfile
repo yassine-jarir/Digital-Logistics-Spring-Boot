@@ -73,25 +73,16 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            when {
-                expression { currentBuild.result != 'UNSTABLE' }
-            }
-            steps {
-                echo 'Waiting for Quality Gate result...'
-                script {
-                    try {
-                        timeout(time: 5, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ Quality Gate check failed or timed out: ${e.message}"
-                        currentBuild.result = 'UNSTABLE'
-                    }
-                }
+stage('Quality Gate') {
+    steps {
+        echo "Waiting for Quality Gate result..."
+        script {
+            timeout(time: 15, unit: 'MINUTES') { // <-- Increase timeout here
+                waitForQualityGate abortPipeline: true
             }
         }
-
+    }
+}
         stage('Package') {
             steps {
                 echo 'Packaging the application...'
