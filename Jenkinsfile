@@ -105,7 +105,7 @@ stage('Quality Gate') {
         //             def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
         //             sh "docker build -t digitale-logistic:${appVersion} ."
         //             sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
-        //         }
+        //         }f
         //     }
         // }//
     }
