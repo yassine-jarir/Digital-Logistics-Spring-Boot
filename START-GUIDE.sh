@@ -32,7 +32,7 @@ cat << 'EOF'
    docker exec my-jenkins cat /var/jenkins_home/secrets/initialAdminPassword
 
 6️⃣  ACCÉDER À JENKINS
-   Ouvre: http://localhost:9090
+   Ouvre: http://localhos t:9090
    Colle le mot de passe obtenu à l'étape 5
 
 7️⃣  CONFIGURATION INITIALE JENKINS:

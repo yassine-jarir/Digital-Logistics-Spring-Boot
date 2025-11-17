@@ -58,22 +58,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                echo 'Running SonarQube analysis...'
+                echo "Running SonarQube analysis..."
                 script {
-                    try {
-                        withSonarQubeEnv('SonarQube-Server') {
-                            sh """
-                                ./mvnw sonar:sonar \
-                                -Dsonar.projectKey=digitale-logistic \
-                                -Dsonar.host.url=http://sonarqube:9000 \
-                                -Dsonar.login=${SONAR_TOKEN}
-                            """
-                        }
-                    } catch (Exception e) {
-                        echo "⚠️ SonarQube analysis failed: ${e.message}"
-                        echo "Continuing pipeline without SonarQube analysis..."
-                        currentBuild.result = 'UNSTABLE'
+                    withSonarQubeEnv('SonarQube-Server') {
+                        sh "./mvnw sonar:sonar -Dsonar.projectKey=digitale-logistic -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.login=$SONAR_TOKEN"
                     }
+                }
+            }
+            post {
+                failure {
+                    echo "⚠️ SonarQube analysis failed: script returned exit code 1"
+                    echo "Continuing pipeline without SonarQube analysis..."
                 }
             }
         }
@@ -109,19 +104,19 @@ pipeline {
             }
         }
 
-        stage('Docker Build') {
-            when {
-                expression { fileExists('Dockerfile') }
-            }
-            steps {
-                echo 'Building Docker image...'
-                script {
-                    def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
-                    sh "/usr/bin/docker build -t digitale-logistic:${appVersion} ."
-                    sh "/usr/bin/docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
-                }
-            }
-        }
+        // stage('Docker Build') {
+        //     when {
+        //         expression { fileExists('Dockerfile') }
+        //     }
+        //     steps {
+        //         echo 'Building Docker image...'
+        //         script {
+        //             def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
+        //             sh "docker build -t digitale-logistic:${appVersion} ."
+        //             sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
+        //         }
+        //     }
+        // }
     }
 
     post {

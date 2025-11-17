@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database (using your existing container name)
   my-postgres:
@@ -37,24 +35,27 @@ services:
     volumes:
       - jenkins-data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+      # 👇 ADD THIS LINE TO INJECT THE DOCKER EXECUTABLE
+      - /usr/bin/docker:/usr/bin/docker
     depends_on:
       my-postgres:
         condition: service_healthy
-
-  # SonarQube (optionnel - pour l'analyse de code)
+      sonarqube:
+        condition: service_started
+  # SonarQube (optionnel pour l'analyse de code)
   sonarqube:
-    image: sonarqube:latest
+    image: sonarqube:community
     container_name: sonarqube
     environment:
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
     ports:
       - "9000:9000"
-    networks:
-      - jenkins-network
     volumes:
       - sonarqube-data:/opt/sonarqube/data
       - sonarqube-logs:/opt/sonarqube/logs
       - sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - jenkins-network
 
 networks:
   jenkins-network:
