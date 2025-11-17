@@ -30,9 +30,9 @@ class WareHouseServiceTest {
     private wareHouseService wareHouseService;
 
     // Dummy data for testing
-    private final Long WAREHOUSE_ID = 1L;
-    private final String WAREHOUSE_NAME = "Central Warehouse";
-    private final String WAREHOUSE_LOCATION = "New York";
+    private final Long warehouseId = 1L;
+    private final String warehouseName = "Central Warehouse";
+    private final String warehouseLocation = "New York";
 
     private Warehouse dummyEntity;
     private WareHouseDTO dummyDto;
@@ -40,14 +40,14 @@ class WareHouseServiceTest {
     @BeforeEach
     void setUp() {
         dummyEntity = new Warehouse();
-        dummyEntity.setId(WAREHOUSE_ID);
-        dummyEntity.setName(WAREHOUSE_NAME);
-        dummyEntity.setLocation(WAREHOUSE_LOCATION);
+        dummyEntity.setId(warehouseId);
+        dummyEntity.setName(warehouseName);
+        dummyEntity.setLocation(warehouseLocation);
         dummyEntity.setActive(true);
 
         dummyDto = new WareHouseDTO();
-        dummyDto.setName(WAREHOUSE_NAME);
-        dummyDto.setLocation(WAREHOUSE_LOCATION);
+        dummyDto.setName(warehouseName);
+        dummyDto.setLocation(warehouseLocation);
         dummyDto.setActive(true);
     }
 
@@ -60,7 +60,7 @@ class WareHouseServiceTest {
         // Mock mapper to convert DTO to Entity
         when(warehouseMapper.toEntity(dummyDto)).thenReturn(dummyEntity);
         // Mock repository to check if name exists (return false/not exists)
-        when(warehouseRepository.existsByName(WAREHOUSE_NAME)).thenReturn(false);
+        when(warehouseRepository.existsByName(warehouseName)).thenReturn(false);
         // Mock repository save call
         when(warehouseRepository.save(dummyEntity)).thenReturn(dummyEntity);
         // Mock mapper to convert saved Entity back to DTO
@@ -69,15 +69,15 @@ class WareHouseServiceTest {
         WareHouseDTO result = wareHouseService.create(dummyDto);
 
         assertNotNull(result);
-        assertEquals(WAREHOUSE_NAME, result.getName());
-        verify(warehouseRepository, times(1)).existsByName(WAREHOUSE_NAME);
+        assertEquals(warehouseName, result.getName());
+        verify(warehouseRepository, times(1)).existsByName(warehouseName);
         verify(warehouseRepository, times(1)).save(dummyEntity);
     }
 
     @Test
     void create_ThrowsExceptionIfNameExists() {
         // Mock repository to check if name exists (return true/exists)
-        when(warehouseRepository.existsByName(WAREHOUSE_NAME)).thenReturn(true);
+        when(warehouseRepository.existsByName(warehouseName)).thenReturn(true);
 
         // Assert that the RuntimeException is thrown
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
@@ -126,25 +126,25 @@ class WareHouseServiceTest {
     @Test
     void getById_Success() {
         // Mock repository find by id call (found)
-        when(warehouseRepository.findById(WAREHOUSE_ID)).thenReturn(Optional.of(dummyEntity));
+        when(warehouseRepository.findById(warehouseId)).thenReturn(Optional.of(dummyEntity));
         // Mock mapper call
         when(warehouseMapper.toDto(dummyEntity)).thenReturn(dummyDto);
 
-        WareHouseDTO result = wareHouseService.getById(WAREHOUSE_ID);
+        WareHouseDTO result = wareHouseService.getById(warehouseId);
 
         assertNotNull(result);
-        assertEquals(WAREHOUSE_NAME, result.getName());
-        verify(warehouseRepository, times(1)).findById(WAREHOUSE_ID);
+        assertEquals(warehouseName, result.getName());
+        verify(warehouseRepository, times(1)).findById(warehouseId);
     }
 
     @Test
     void getById_ThrowsExceptionIfNotFound() {
         // Mock repository find by id call (not found)
-        when(warehouseRepository.findById(WAREHOUSE_ID)).thenReturn(Optional.empty());
+        when(warehouseRepository.findById(warehouseId)).thenReturn(Optional.empty());
 
         // Assert that the RuntimeException is thrown
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            wareHouseService.getById(WAREHOUSE_ID);
+            wareHouseService.getById(warehouseId);
         });
 
         assertEquals("Warehouse not found", exception.getMessage());
@@ -158,11 +158,11 @@ class WareHouseServiceTest {
         WareHouseDTO updateDto = new WareHouseDTO("New Name", "New Location", false);
 
         // Mock repository find by id call (not found)
-        when(warehouseRepository.findById(WAREHOUSE_ID)).thenReturn(Optional.empty());
+        when(warehouseRepository.findById(warehouseId)).thenReturn(Optional.empty());
 
         // Assert that the RuntimeException is thrown
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            wareHouseService.update(WAREHOUSE_ID, updateDto);
+            wareHouseService.update(warehouseId, updateDto);
         });
 
         assertEquals("Warehouse not found", exception.getMessage());
@@ -176,26 +176,26 @@ class WareHouseServiceTest {
     @Test
     void delete_Success() {
         // Mock repository exists by id call (return true/exists)
-        when(warehouseRepository.existsById(WAREHOUSE_ID)).thenReturn(true);
+        when(warehouseRepository.existsById(warehouseId)).thenReturn(true);
         // Do nothing when delete is called
-        doNothing().when(warehouseRepository).deleteById(WAREHOUSE_ID);
+        doNothing().when(warehouseRepository).deleteById(warehouseId);
 
         // Execute
-        wareHouseService.delete(WAREHOUSE_ID);
+        wareHouseService.delete(warehouseId);
 
         // Verify
-        verify(warehouseRepository, times(1)).existsById(WAREHOUSE_ID);
-        verify(warehouseRepository, times(1)).deleteById(WAREHOUSE_ID);
+        verify(warehouseRepository, times(1)).existsById(warehouseId);
+        verify(warehouseRepository, times(1)).deleteById(warehouseId);
     }
 
     @Test
     void delete_ThrowsExceptionIfNotFound() {
         // Mock repository exists by id call (return false/not found)
-        when(warehouseRepository.existsById(WAREHOUSE_ID)).thenReturn(false);
+        when(warehouseRepository.existsById(warehouseId)).thenReturn(false);
 
         // Assert that the RuntimeException is thrown
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            wareHouseService.delete(WAREHOUSE_ID);
+            wareHouseService.delete(warehouseId);
         });
 
         assertEquals("Warehouse not found", exception.getMessage());
