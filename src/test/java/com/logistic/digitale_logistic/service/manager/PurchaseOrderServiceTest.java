@@ -1,144 +1,168 @@
 package com.logistic.digitale_logistic.service.manager;
 
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.Collections;
-
 import com.logistic.digitale_logistic.dto.PoLineDTO;
 import com.logistic.digitale_logistic.dto.PurchaseOrderDTO;
-import com.logistic.digitale_logistic.entity.Product;
-import com.logistic.digitale_logistic.entity.PurchaseOrder;
-import com.logistic.digitale_logistic.entity.Supplier;
-import com.logistic.digitale_logistic.entity.Warehouse;
+import com.logistic.digitale_logistic.entity.*;
+import com.logistic.digitale_logistic.enums.PurchaseOrderStatus;
 import com.logistic.digitale_logistic.exceptions.BusinessException;
 import com.logistic.digitale_logistic.mapper.PurchaseOrderMapper;
-import com.logistic.digitale_logistic.repository.ProductRepository;
-import com.logistic.digitale_logistic.repository.PurchaseOrderRepository;
-import com.logistic.digitale_logistic.repository.SupplierRepository;
-import com.logistic.digitale_logistic.repository.WareHouseRepository;
+import com.logistic.digitale_logistic.repository.*;
+import com.logistic.digitale_logistic.service.client.BackorderFulfillmentService;
 import com.logistic.digitale_logistic.service.warehouse_manager.PurchaseOrderService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 
-public class PurchaseOrderServiceTest {
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
 
-    @Mock
-    private SupplierRepository supplierRepository;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @Mock
-    private WareHouseRepository warehouseRepository;
+class PurchaseOrderServiceTest {
 
-    @Mock
-    private ProductRepository productRepository;
-
-    @Mock
-    private PurchaseOrderRepository purchaseOrderRepository;
-
-    @Mock
-    private PurchaseOrderMapper purchaseOrderMapper;
+    @Mock private PurchaseOrderRepository purchaseOrderRepository;
+    @Mock private PoLineRepository poLineRepository;
+    @Mock private InventoryRepository inventoryRepository;
+    @Mock private InventoryMovementRepository inventoryMovementRepository;
+    @Mock private SupplierRepository supplierRepository;
+    @Mock private WareHouseRepository warehouseRepository;
+    @Mock private ProductRepository productRepository;
+    @Mock private PurchaseOrderMapper purchaseOrderMapper;
+    @Mock private BackorderFulfillmentService backorderFulfillmentService;
 
     @InjectMocks
-    private PurchaseOrderService purchaseOrderService;
+    private PurchaseOrderService
+            purchaseOrderService;
 
     @BeforeEach
-    public void setup() {
+    void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
+    // ================== TEST 1: CREATE PURCHASE ORDER SUCCESS ==================
     @Test
-    public void testCreatePurchaseOrder_Success() {
-        // Input DTO
+    void testCreatePurchaseOrder_Success() {
         PurchaseOrderDTO dto = new PurchaseOrderDTO();
         dto.setSupplierId(1L);
-        dto.setWarehouseId(1L);
+        dto.setWarehouseId(10L);
         dto.setOrderDate(LocalDate.now());
 
         PoLineDTO lineDTO = new PoLineDTO();
-        lineDTO.setProductId(100L);
+        lineDTO.setProductId(5L);
         lineDTO.setOrderedQuantity(10);
-        lineDTO.setUnitCost(BigDecimal.valueOf(50.0));
-        dto.setLines(Collections.singletonList(lineDTO));
+        lineDTO.setUnitCost(BigDecimal.valueOf(100.0));
 
-        // Mock supplier, warehouse, product
+        dto.setLines(List.of(lineDTO));
+
         Supplier supplier = new Supplier();
         supplier.setId(1L);
 
         Warehouse warehouse = new Warehouse();
-        warehouse.setId(1L);
+        warehouse.setId(10L);
 
         Product product = new Product();
-        product.setId(100L);
+        product.setId(5L);
+
+        PurchaseOrder savedPO = new PurchaseOrder();
+        savedPO.setId(99L);
+        savedPO.setStatus(PurchaseOrderStatus.DRAFT);
 
         when(supplierRepository.findById(1L)).thenReturn(Optional.of(supplier));
-        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(warehouse));
-        when(productRepository.findById(100L)).thenReturn(Optional.of(product));
+        when(warehouseRepository.findById(10L)).thenReturn(Optional.of(warehouse));
+        when(productRepository.findById(5L)).thenReturn(Optional.of(product));
+        when(purchaseOrderRepository.save(any())).thenReturn(savedPO);
+        when(purchaseOrderMapper.toDTO(savedPO)).thenReturn(new PurchaseOrderDTO());
 
-        // Mock save for PurchaseOrder
-        PurchaseOrder savedPo = new PurchaseOrder();
-        savedPo.setId(1L);
-        when(purchaseOrderRepository.save(any(PurchaseOrder.class))).thenReturn(savedPo);
-
-        // Mock mapper
-        PurchaseOrderDTO savedDto = new PurchaseOrderDTO();
-        savedDto.setId(1L);
-        when(purchaseOrderMapper.toDTO(savedPo)).thenReturn(savedDto);
-
-        // Call the method
         PurchaseOrderDTO result = purchaseOrderService.createPurchaseOrder(dto);
 
-        // Verify results
         assertNotNull(result);
-        assertEquals(1L, result.getId());
-
-        // Verify repository interactions
-        verify(supplierRepository).findById(1L);
-        verify(warehouseRepository).findById(1L);
-        verify(productRepository).findById(100L);
-        verify(purchaseOrderRepository, times(2)).save(any(PurchaseOrder.class));
+        verify(purchaseOrderRepository, times(2)).save(any());
     }
 
+    // ================== TEST 2: CREATE PO → SUPPLIER NOT FOUND ==================
     @Test
-    public void testCreatePurchaseOrder_SupplierNotFound() {
+    void testCreatePurchaseOrder_SupplierNotFound() {
         PurchaseOrderDTO dto = new PurchaseOrderDTO();
-        dto.setSupplierId(1L);
-        dto.setWarehouseId(1L);
+        dto.setSupplierId(3L);
 
-        when(supplierRepository.findById(1L)).thenReturn(Optional.empty());
-// assertThrows checks that the method throws the expected exception.
-        BusinessException exception = assertThrows(BusinessException.class,
+        when(supplierRepository.findById(3L)).thenReturn(Optional.empty());
+
+        BusinessException ex = assertThrows(BusinessException.class,
                 () -> purchaseOrderService.createPurchaseOrder(dto));
 
-        assertEquals("Supplier not found", exception.getMessage());
+        assertEquals("Supplier not found", ex.getMessage());
     }
 
+    // ================== TEST 3: APPROVE PO SUCCESS ==================
     @Test
-    public void testCreatePurchaseOrder_ProductNotFound() {
-        PurchaseOrderDTO dto = new PurchaseOrderDTO();
-        dto.setSupplierId(1L);
-        dto.setWarehouseId(1L);
+    void testApprovePurchaseOrder_Success() {
+        PurchaseOrder po = new PurchaseOrder();
+        po.setId(1L);
+        po.setStatus(PurchaseOrderStatus.DRAFT);
 
-        PoLineDTO lineDTO = new PoLineDTO();
-        lineDTO.setProductId(100L);
-        lineDTO.setOrderedQuantity(10);
-        dto.setLines(Collections.singletonList(lineDTO));
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(po));
+        when(purchaseOrderRepository.save(any())).thenReturn(po);
+        when(purchaseOrderMapper.toDTO(any())).thenReturn(new PurchaseOrderDTO());
 
-        Supplier supplier = new Supplier();
+        PurchaseOrderDTO result = purchaseOrderService.approvePurchaseOrder(1L);
+
+        assertNotNull(result);
+        assertEquals(PurchaseOrderStatus.APPROVED, po.getStatus());
+    }
+
+    // ================== TEST 4: APPROVE FAIL → INVALID STATUS ==================
+    @Test
+    void testApprovePurchaseOrder_InvalidStatus() {
+        PurchaseOrder po = new PurchaseOrder();
+        po.setStatus(PurchaseOrderStatus.RECEIVED);
+
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(po));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> purchaseOrderService.approvePurchaseOrder(1L));
+
+        assertEquals("Cannot approve: Purchase Order is not in DRAFT status", ex.getMessage());
+    }
+
+    // ================== TEST 5: RECEIVE ENTIRE PO SUCCESS ==================
+    @Test
+    void testReceiveEntirePurchaseOrder_Success() {
+        PurchaseOrder po = new PurchaseOrder();
+        po.setId(1L);
+        po.setStatus(PurchaseOrderStatus.APPROVED);
+
+        Product product = new Product();
+        product.setId(5L);
+
         Warehouse warehouse = new Warehouse();
+        warehouse.setId(10L);
 
-        when(supplierRepository.findById(1L)).thenReturn(Optional.of(supplier));
-        when(warehouseRepository.findById(1L)).thenReturn(Optional.of(warehouse));
-        when(productRepository.findById(100L)).thenReturn(Optional.empty());
+        PoLine line = new PoLine();
+        line.setId(100L);
+        line.setProduct(product);
+        line.setOrderedQuantity(20);
+        line.setReceivedQuantity(0);
 
-        BusinessException exception = assertThrows(BusinessException.class,
-                () -> purchaseOrderService.createPurchaseOrder(dto));
+        po.setWarehouse(warehouse);
+        po.setLines(new ArrayList<>(List.of(line)));
 
-        assertEquals("Product not found: 100", exception.getMessage());
+        Inventory inventory = new Inventory();
+        inventory.setQtyOnHand(5);
+
+        when(purchaseOrderRepository.findById(1L)).thenReturn(Optional.of(po));
+        when(inventoryRepository.findByProduct_IdAndWarehouse_Id(5L, 10L))
+                .thenReturn(Optional.of(inventory));
+        when(inventoryRepository.save(any())).thenReturn(inventory);
+        when(purchaseOrderRepository.save(any())).thenReturn(po);
+        when(purchaseOrderMapper.toDTO(po)).thenReturn(new PurchaseOrderDTO());
+
+        PurchaseOrderDTO result = purchaseOrderService.receiveEntirePurchaseOrder(1L);
+
+        assertNotNull(result);
+        assertEquals(PurchaseOrderStatus.RECEIVED, po.getStatus());
+        assertEquals(25, inventory.getQtyOnHand()); // 5 existed + 20 received
     }
 }

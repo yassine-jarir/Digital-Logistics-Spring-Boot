@@ -1,4 +1,4 @@
-package com.logistic.digitale_logistic.controller.Admin;
+package com.logistic.digitale_logistic.controller;
 
 import com.logistic.digitale_logistic.dto.WareHouseDTO;
 import com.logistic.digitale_logistic.service.Admin.wareHouseService;

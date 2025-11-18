@@ -1,4 +1,4 @@
-package com.logistic.digitale_logistic.controller.Admin;
+package com.logistic.digitale_logistic.controller;
 
 import com.logistic.digitale_logistic.dto.SalesOrderDTO;
 import com.logistic.digitale_logistic.service.client.SalesOrderService;
