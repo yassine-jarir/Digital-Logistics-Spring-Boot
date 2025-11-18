@@ -139,7 +139,7 @@ class UserServiceTest {
         assertFalse(result.getActive());
     }
 
-    // ------------------------------
+    // -------------f-----------------
     // ✔ TEST: DEACTIVATE USER
     // ------------------------------
     @Test
