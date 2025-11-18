@@ -113,23 +113,26 @@ class UserServiceTest {
         dto.setRole(Role.ADMIN);
         dto.setActive(false);
 
-        User saved = new User();
-        saved.setId(10L);
-        saved.setName("New");
-        saved.setEmail("new@example.com");
-        saved.setRole(Role.ADMIN);
-        saved.setActive(false);
-
-        UserDTO outputDTO = new UserDTO();
-        outputDTO.setId(10L);
-        outputDTO.setName("New");
-        outputDTO.setEmail("new@example.com");
-        outputDTO.setRole(Role.ADMIN);
-        outputDTO.setActive(false);
-
         when(userRepository.findById(10L)).thenReturn(Optional.of(existing));
-        when(userRepository.save(any(User.class))).thenReturn(saved);
-        when(userMapper.toDto(saved)).thenReturn(outputDTO);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User savedUser = invocation.getArgument(0);
+            // Verify the saved user has the updated values
+            assertEquals("New", savedUser.getName());
+            assertEquals("new@example.com", savedUser.getEmail());
+            assertEquals(Role.ADMIN, savedUser.getRole());
+            assertFalse(savedUser.getActive());
+            return savedUser;
+        });
+        when(userMapper.toDto(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            UserDTO outputDTO = new UserDTO();
+            outputDTO.setId(user.getId());
+            outputDTO.setName(user.getName());
+            outputDTO.setEmail(user.getEmail());
+            outputDTO.setRole(user.getRole());
+            outputDTO.setActive(user.getActive());
+            return outputDTO;
+        });
 
         UserDTO result = userService.updateUser(10L, dto);
 

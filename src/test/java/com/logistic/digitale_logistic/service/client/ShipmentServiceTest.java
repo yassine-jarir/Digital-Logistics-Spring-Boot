@@ -47,10 +47,13 @@ class ShipmentServiceTest {
 
         warehouse = new Warehouse();
         warehouse.setId(1L);
+        warehouse.setName("Main Warehouse");
+        warehouse.setLocation("Location A");
 
         product = new Product();
         product.setId(1L);
         product.setSku("SKU-001");
+        product.setName("Product A");
 
         soLine = new SoLine();
         soLine.setId(1L);
@@ -59,17 +62,29 @@ class ShipmentServiceTest {
         soLine.setReservedQuantity(5);
         soLine.setUnitPrice(BigDecimal.valueOf(10.00));
 
+        salesOrder = new SalesOrder();
+        salesOrder.setId(1L);
+        salesOrder.setStatus("RESERVED");
+        salesOrder.setWarehouse(warehouse);
+
+        // Initialize the lines list properly
+        List<SoLine> soLinesList = new ArrayList<>();
+        soLinesList.add(soLine);
+        salesOrder.setLines(soLinesList);
+
+        // Set the sales order reference in soLine
+        soLine.setSalesOrder(salesOrder);
+
         shipmentLine = new ShipmentLine();
         shipmentLine.setId(1L);
         shipmentLine.setProduct(product);
         shipmentLine.setQuantity(5);
         shipmentLine.setSalesOrderLine(soLine);
 
-        salesOrder = new SalesOrder();
-        salesOrder.setId(1L);
-        salesOrder.setStatus("RESERVED");
-        salesOrder.setLines(new ArrayList<>(List.of(soLine)));
-        salesOrder.setWarehouse(warehouse);
+        // Initialize shipment reference to avoid null in lists
+        Shipment dummyShipment = new Shipment();
+        dummyShipment.setId(1L);
+        shipmentLine.setShipment(dummyShipment);
     }
 
     @Test
