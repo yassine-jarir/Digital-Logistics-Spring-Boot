@@ -2,7 +2,6 @@ package com.logistic.digitale_logistic.service.client;
 
 import com.logistic.digitale_logistic.dto.ShipmentDTO;
 import com.logistic.digitale_logistic.entity.*;
-import com.logistic.digitale_logistic.enums.MovementType;
 import com.logistic.digitale_logistic.mapper.ShipmentMapper;
 import com.logistic.digitale_logistic.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,8 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
