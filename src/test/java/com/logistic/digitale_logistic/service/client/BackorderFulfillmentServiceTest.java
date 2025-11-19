@@ -134,5 +134,6 @@ class BackorderFulfillmentServiceTest {
 
         assertEquals(1, result.size());
         assertEquals(backorder, result.get(0));
+
     }
 }
