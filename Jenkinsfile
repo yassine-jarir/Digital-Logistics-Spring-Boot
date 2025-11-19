@@ -107,7 +107,7 @@ stage('Quality Gate') {
                     sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
                 }f
             }
-        }//
+        }
     }
 
     post {
