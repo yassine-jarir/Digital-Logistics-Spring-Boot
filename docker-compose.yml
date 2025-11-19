@@ -1,5 +1,4 @@
 services:
-  # PostgreSQL Database (using your existing container name)
   my-postgres:
     image: postgres:17
     container_name: my-postgres
@@ -19,10 +18,12 @@ services:
       timeout: 5s
       retries: 5
 
-  # Jenkins CI/CD Server
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
     container_name: my-jenkins
+    privileged: true
     user: root
     environment:
       - JENKINS_OPTS=--httpPort=8080
@@ -35,14 +36,12 @@ services:
     volumes:
       - jenkins-data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      # 👇 ADD THIS LINE TO INJECT THE DOCKER EXECUTABLE
-      - /usr/bin/docker:/usr/bin/docker
     depends_on:
       my-postgres:
         condition: service_healthy
       sonarqube:
         condition: service_started
-  # SonarQube (optionnel pour l'analyse de code)
+
   sonarqube:
     image: sonarqube:community
     container_name: sonarqube
