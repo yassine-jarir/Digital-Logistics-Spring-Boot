@@ -18,9 +18,4 @@ public class WarehouseManager {
     @JoinColumn(name = "user_id")
     @ToString.Exclude
     private User user;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "warehouse_id", nullable = false)
-    @ToString.Exclude
-    private Warehouse warehouse;
 }

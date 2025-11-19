@@ -1,5 +1,6 @@
 package com.logistic.digitale_logistic.entity;
 
+import com.logistic.digitale_logistic.enums.MovementType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -26,8 +27,9 @@ public class InventoryMovement {
     @ToString.Exclude
     private Warehouse warehouse;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "movement_type", nullable = false, length = 50)
-    private String movementType;
+    private MovementType movementType;
 
     @Column(name = "quantity", nullable = false)
     private Integer quantity;

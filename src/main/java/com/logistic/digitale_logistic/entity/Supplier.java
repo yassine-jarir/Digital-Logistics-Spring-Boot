@@ -1,6 +1,7 @@
 package com.logistic.digitale_logistic.entity;
 
 import jakarta.persistence.*;
+import jdk.jshell.Snippet;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Supplier {
 
     @Id
@@ -33,4 +35,6 @@ public class Supplier {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+
 }

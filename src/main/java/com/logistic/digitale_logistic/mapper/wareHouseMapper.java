@@ -1,11 +1,11 @@
 package com.logistic.digitale_logistic.mapper;
 
-
+import com.logistic.digitale_logistic.dto.WareHouseDTO;
 import com.logistic.digitale_logistic.entity.Warehouse;
 import org.mapstruct.Mapper;
 
-@Mapper(componentModel= "spring")
+@Mapper(componentModel = "spring")
 public interface wareHouseMapper {
-    wareHouseDTO toDto(Warehouse wareHouse);
-    Warehouse toEntity(wareHouseDTO dto);
+    WareHouseDTO toDto(Warehouse warehouse);
+    Warehouse toEntity(WareHouseDTO dto);
 }

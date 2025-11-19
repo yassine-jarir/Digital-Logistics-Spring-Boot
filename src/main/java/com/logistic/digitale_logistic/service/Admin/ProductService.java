@@ -3,8 +3,13 @@ package com.logistic.digitale_logistic.service.Admin;
 import com.logistic.digitale_logistic.dto.ProductDTO;
 import com.logistic.digitale_logistic.dto.UserDTO;
 import com.logistic.digitale_logistic.entity.Product;
+import com.logistic.digitale_logistic.entity.SalesOrder;
+import com.logistic.digitale_logistic.entity.SoLine;
 import com.logistic.digitale_logistic.mapper.ProductMapper;
+import com.logistic.digitale_logistic.repository.InventoryRepository;
 import com.logistic.digitale_logistic.repository.ProductRepository;
+import com.logistic.digitale_logistic.repository.SalesOrderRepository;
+import com.logistic.digitale_logistic.repository.SoLineRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,10 +20,16 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
+    private final SalesOrderRepository salesOrderRepository;
+    private final InventoryRepository inventoryRepository;
+    private final SoLineRepository soLineRepository;
 
-    public ProductService(ProductRepository repo, ProductMapper mapper) {
+    public ProductService(ProductRepository repo, ProductMapper mapper, SalesOrderRepository salesOrderRepository, InventoryRepository inventoryRepository, SoLineRepository soLineRepository) {
         this.productRepository = repo;
         this.productMapper = mapper;
+        this.salesOrderRepository = salesOrderRepository;
+        this.inventoryRepository = inventoryRepository;
+        this.soLineRepository = soLineRepository;
     }
 
     public List<ProductDTO> getAllProducts() {
@@ -60,10 +71,36 @@ public class ProductService {
         productRepository.save(product);
     }
 
-    public void deactivateProduct(Long id) throws Exception {
-        Product product = productRepository.findById(id)
-                .orElseThrow(() -> new Exception("Product not found"));
+    public void deactivateProduct(String sku) throws Exception {
+        Product product = productRepository.findBySku(sku);
+
+        if (product == null) {
+            throw new Exception("Product not found");
+        }
+        Product prod = productRepository.findBySku(sku);
+
+        if (prod == null) {
+            throw new Exception("Product with SKU " + sku + " not found.");
+        }
+
+        List<SoLine> soLine = soLineRepository.findProductById(prod.getId());
+
+        if(!soLine.isEmpty()){
+            for(SoLine so: soLine){
+                SalesOrder salesOrder = salesOrderRepository.findById(so.getId()).orElseThrow(() -> new Exception("Sales Order not found"));
+                String status = salesOrder.getStatus();
+                    if(status.equals("CREATED") || status.equals("RESERVED")){
+                    throw new Exception("cannot desactivate product linked to active sales order ");
+                }
+            }
+        }
+
+        Integer qtyReserved = inventoryRepository.findTotalQtyReservedByProductId(prod.getId());
+        if(qtyReserved > 0){
+            throw new Exception("cannot desactivate product qty > 0 ");
+        }
         product.setActive(false);
         productRepository.save(product);
     }
 }
+
