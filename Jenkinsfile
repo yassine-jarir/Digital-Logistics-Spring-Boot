@@ -95,19 +95,19 @@ stage('Quality Gate') {
             }
         }
 
-        // stage('Docker Build') {
-        //     when {
-        //         expression { fileExists('Dockerfile') }
-        //     }
-        //     steps {
-        //         echo 'Building Docker image...'
-        //         script {
-        //             def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
-        //             sh "docker build -t digitale-logistic:${appVersion} ."
-        //             sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
-        //         }f
-        //     }
-        // }//
+        stage('Docker Build') {
+            when {
+                expression { fileExists('Dockerfile') }
+            }
+            steps {
+                echo 'Building Docker image...'
+                script {
+                    def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
+                    sh "docker build -t digitale-logistic:${appVersion} ."
+                    sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
+                }f
+            }
+        }//
     }
 
     post {
