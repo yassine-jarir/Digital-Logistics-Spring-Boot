@@ -21,7 +21,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/", "/error", "/favicon.ico").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        // Allow Swagger UI and OpenAPI endpoints
+                        // Allow Swagger UI and OpenAPI endpoints.
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         // Allow static resources
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
