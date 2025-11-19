@@ -12,6 +12,7 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 echo 'Checking out source code...'
@@ -61,7 +62,10 @@ pipeline {
                 echo "Running SonarQube analysis..."
                 script {
                     withSonarQubeEnv('SonarQube-Server') {
-                        sh "./mvnw sonar:sonar -Dsonar.projectKey=digitale-logistic -Dsonar.host.url=http://host.docker.internal:9000 -Dsonar.login=$SONAR_TOKEN"
+                        sh "./mvnw sonar:sonar \
+                           -Dsonar.projectKey=digitale-logistic \
+                           -Dsonar.host.url=http://host.docker.internal:9000 \
+                           -Dsonar.login=$SONAR_TOKEN"
                     }
                 }
             }
@@ -73,16 +77,17 @@ pipeline {
             }
         }
 
-stage('Quality Gate') {
-    steps {
-        echo "Waiting for Quality Gate result..."
-        script {
-            timeout(time: 3, unit: 'MINUTES') {
-                waitForQualityGate abortPipeline: true
+        stage('Quality Gate') {
+            steps {
+                echo "Waiting for Quality Gate result..."
+                script {
+                    timeout(time: 3, unit: 'MINUTES') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
             }
         }
-    }
-}
+
         stage('Package') {
             steps {
                 echo 'Packaging the application...'
@@ -102,10 +107,14 @@ stage('Quality Gate') {
             steps {
                 echo 'Building Docker image...'
                 script {
-                    def appVersion = sh(script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout', returnStdout: true).trim()
+                    def appVersion = sh(
+                        script: './mvnw help:evaluate -Dexpression=project.version -q -DforceStdout',
+                        returnStdout: true
+                    ).trim()
+
                     sh "docker build -t digitale-logistic:${appVersion} ."
                     sh "docker tag digitale-logistic:${appVersion} digitale-logistic:latest"
-                }f
+                }
             }
         }
     }
