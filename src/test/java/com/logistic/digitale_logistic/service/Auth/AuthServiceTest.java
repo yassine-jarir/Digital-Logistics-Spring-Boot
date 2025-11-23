@@ -1,6 +1,5 @@
 package com.logistic.digitale_logistic.service.Auth;
 
-import com.logistic.digitale_logistic.config.JwtUtil;
 import com.logistic.digitale_logistic.dto.RegisterRequest;
 import com.logistic.digitale_logistic.entity.User;
 import com.logistic.digitale_logistic.enums.Role;
@@ -28,9 +27,6 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private JwtUtil jwtUtil;
-
     @InjectMocks
     private AuthService authService;
 
@@ -55,12 +51,12 @@ class AuthServiceTest {
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(rawPassword, encodedPassword)).thenReturn(true);
-        when(jwtUtil.generateToken(email, Role.CLIENT)).thenReturn("jwt-token");
 
-        String token = authService.login(email, rawPassword);
+        String result = authService.login(email, rawPassword);
 
-        assertEquals("jwt-token", token);
-        verify(jwtUtil, times(1)).generateToken(email, Role.CLIENT);
+        assertNotNull(result);
+        assertTrue(result.contains("Login successful"));
+        assertTrue(result.contains("CLIENT"));
     }
 
     // ======================================================
