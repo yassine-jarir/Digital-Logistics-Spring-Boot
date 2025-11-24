@@ -102,7 +102,7 @@ pipeline {
 
 //         stage('Docker Build') {
 //             when {
-//                 expression { fileExists('Dockerfile') }
+//     n            expression { fileExists('Dockerfile') }
 //             }
 //             steps {
 //                 echo 'Building Docker image...'
