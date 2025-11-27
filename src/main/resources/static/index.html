@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Logistics & Supply Chain Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .version {
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        .status {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+        }
+        .section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .link-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #333;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+        .link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        .link-card h3 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+        .link-card p {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .feature {
+            background: #e0e7ff;
+            padding: 8px 16px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            color: #5145cd;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #888;
+            font-size: 0.85em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚚 Digital Logistics Platform</h1>
+        <p class="version">Version 0.0.1-SNAPSHOT</p>
+        <span class="status">● Running</span>
+
+        <div class="section">
+            <h2>📚 API Documentation</h2>
+            <div class="links">
+                <a href="/swagger-ui.html" class="link-card">
+                    <h3>Swagger UI</h3>
+                    <p>Interactive API documentation</p>
+                </a>
+                <a href="/v3/api-docs" class="link-card">
+                    <h3>OpenAPI Spec</h3>
+                    <p>JSON API specification</p>
+                </a>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🔗 API Endpoints</h2>
+            <div class="links">
+                <div class="link-card">
+                    <h3>Authentication</h3>
+                    <p>/api/auth/**</p>
+                </div>
+                <div class="link-card">
+                    <h3>Admin</h3>
+                    <p>/api/admin/**</p>
+                </div>
+                <div class="link-card">
+                    <h3>Client</h3>
+                    <p>/api/client/**</p>
+                </div>
+                <div class="link-card">
+                    <h3>Warehouse Manager</h3>
+                    <p>/api/warehouse-manager/**</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✨ Features</h2>
+            <div class="features">
+                <span class="feature">Inventory Management</span>
+                <span class="feature">Purchase Orders</span>
+                <span class="feature">Sales Orders</span>
+                <span class="feature">Shipment Tracking</span>
+                <span class="feature">Backorder Management</span>
+                <span class="feature">Warehouse Operations</span>
+                <span class="feature">JWT Authentication</span>
+                <span class="feature">Role-Based Access</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Spring Boot 3.5.7 • Java 17 • PostgreSQL</p>
+            <p>Digital Logistics & Supply Chain Platform © 2025</p>
+        </div>
+    </div>
+</body>
+</html>
+

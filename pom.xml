@@ -28,11 +28,32 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
+		<!-- SonarQube Properties -->
+		<sonar.projectKey>digitale-logistic</sonar.projectKey>
+		<sonar.projectName>Digital Logistics Supply Chain Platform</sonar.projectName>
+		<sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+		<sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+		<sonar.jacoco.reportPath>${project.basedir}/target/jacoco.exec</sonar.jacoco.reportPath>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.basedir}/target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.exclusions>
+			**/dto/**,
+			**/mapper/**,
+			**/config/**,
+			**/entity/**,
+			**/enums/**,
+			**/*Application.java
+		</sonar.exclusions>
+		<sonar.coverage.exclusions>
+			**/dto/**,
+			**/mapper/**,
+			**/config/**,
+			**/entity/**,
+			**/enums/**,
+			**/*Application.java
+		</sonar.coverage.exclusions>
 	</properties>
 	<dependencies>
-            <!-- existing dependencies ... -->
-
-        <!-- Spring Security starter: provides authentication, authorization, and security infrastructure for Spring Boot applications -->
+            <!-- Spring Security starter: provides authentication, authorization, and security infrastructure for Spring Boot applications -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
@@ -96,16 +117,92 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- H2 Database for local testing (fallback) -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.restdocs</groupId>
 			<artifactId>spring-restdocs-mockmvc</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Swagger/OpenAPI Documentation -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>2.3.0</version>
+		</dependency>
 	</dependencies>
 
 	<build>
 		<plugins>
-			<plugin>
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>3.11.0.3922</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.11</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+
+                            <excludes>**/</excludes>
+
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+                    <excludes>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/mapper/**</exclude>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/entity/**</exclude>
+                        <exclude>**/enums/**</exclude>
+                        <exclude>**/*Application.class</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>

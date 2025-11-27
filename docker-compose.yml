@@ -1,0 +1,68 @@
+services:
+  my-postgres:
+    image: postgres:17
+    container_name: my-postgres
+    environment:
+      POSTGRES_DB: digital_logistics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    networks:
+      - jenkins-network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  jenkins:
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
+    container_name: my-jenkins
+    privileged: true
+    user: root
+    environment:
+      - JENKINS_OPTS=--httpPort=8080
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    ports:
+      - "9090:8080"
+      - "50000:50000"
+    networks:
+      - jenkins-network
+    volumes:
+      - /home/yassine/.docker/desktop/docker.sock:/var/run/docker.sock
+      - jenkins-data:/var/jenkins_home
+    depends_on:
+      my-postgres:
+        condition: service_healthy
+      sonarqube:
+        condition: service_started
+
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    ports:
+      - "9000:9000"
+    volumes:
+      - sonarqube-data:/opt/sonarqube/data
+      - sonarqube-logs:/opt/sonarqube/logs
+      - sonarqube-extensions:/opt/sonarqube/extensions
+    networks:
+      - jenkins-network
+
+networks:
+  jenkins-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  jenkins-data:
+  sonarqube-data:
+  sonarqube-logs:
+  sonarqube-extensions:
