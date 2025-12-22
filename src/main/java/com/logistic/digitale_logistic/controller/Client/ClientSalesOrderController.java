@@ -25,12 +25,7 @@ public class ClientSalesOrderController {
 
     private final SalesOrderService salesOrderService;
 
-    /**
-     * Create a new sales order with automatic reservation
-     *
-     * @param dto the sales order details
-     * @return the created sales order with reservation result
-     */
+
     @Operation(
             summary = "Create sales order",
             description = "Create a new sales order with automatic inventory reservation. The system will reserve available stock and create backorders for unavailable quantities"
@@ -48,12 +43,7 @@ public class ClientSalesOrderController {
         return salesOrderService.createSalesOrder(dto);
     }
 
-    /**
-     * Get all sales orders for the authenticated client
-     *
-     * @param authentication the authenticated user
-     * @return list of sales orders
-     */
+
     @Operation(
             summary = "Get my sales orders",
             description = "Retrieve all sales orders belonging to the authenticated client"
@@ -66,10 +56,7 @@ public class ClientSalesOrderController {
     @GetMapping
     @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
-    public List<SalesOrderDTO> getMyOrders(Authentication authentication) {
-        // Extract client ID from authenticated user
-        Long clientId = Long.parseLong(authentication.getName());
-        return salesOrderService.getClientOrders(clientId);
+    public List<SalesOrderDTO> getMyOrders() {
+        return salesOrderService.getMyOrders();
     }
-
 }

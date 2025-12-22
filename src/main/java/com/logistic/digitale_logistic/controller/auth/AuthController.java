@@ -1,6 +1,7 @@
 package com.logistic.digitale_logistic.controller.auth;
 
-import com.logistic.digitale_logistic.dto.LoginRequest;
+import com.logistic.digitale_logistic.dto.auth.AuthResponse;
+import com.logistic.digitale_logistic.dto.auth.LoginRequest;
 import com.logistic.digitale_logistic.dto.RegisterRequest;
 import com.logistic.digitale_logistic.entity.User;
 import com.logistic.digitale_logistic.service.Auth.AuthService;
@@ -10,9 +11,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/auth")
@@ -35,9 +41,9 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Invalid request body")
     })
     @PostMapping("/login")
-    public Map<String, String> login(@RequestBody LoginRequest request) throws Exception {
-        String token = authService.login(request.getEmail(), request.getPassword());
-        return Map.of("token", token);
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletResponse res) throws Exception {
+        AuthResponse authResponse = authService.login(request, res);
+        return ResponseEntity.ok(authResponse);
     }
 
     @Operation(
@@ -50,7 +56,24 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Invalid registration data or email already exists")
     })
     @PostMapping("/register")
-    public User register(@RequestBody RegisterRequest request) throws Exception {
-        return authService.register(request);
+    public ResponseEntity<User> register(@RequestBody RegisterRequest request) throws Exception {
+        User user = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
-}
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<AuthResponse> refreshToken(
+            @CookieValue(name = "refreshToken", required = false) String refreshToken, HttpServletResponse res) {
+
+        AuthResponse response = authService.refreshToken(refreshToken, res);
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout(
+                @CookieValue(name = "refreshToken") String refreshToken,
+                HttpServletResponse res) {
+
+            authService.logout(refreshToken, res);
+            return ResponseEntity.ok(Map.of("message" , "logout success"));
+        }
+    }

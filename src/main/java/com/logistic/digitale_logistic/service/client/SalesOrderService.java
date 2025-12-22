@@ -129,8 +129,18 @@ public class SalesOrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<SalesOrderDTO> getClientOrders(Long clientId) {
-        return salesOrderRepository.findByClientUserId(clientId).stream()
+    public List<SalesOrderDTO> getMyOrders() {
+
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getName();
+
+        Client client = clientRepository.findByUserEmail(email)
+                .orElseThrow(() -> new RuntimeException("Client not found for user"));
+
+        return salesOrderRepository.findByClientUserId(client.getUserId())
+                .stream()
                 .map(salesOrderMapper::toDTO)
                 .collect(Collectors.toList());
     }
