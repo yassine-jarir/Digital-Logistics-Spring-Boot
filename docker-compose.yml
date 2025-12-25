@@ -1,4 +1,20 @@
 services:
+  spring-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: digitale-logistic-app
+    depends_on:
+      my-postgres:
+        condition: service_healthy
+    environment:
+      DB_PASSWORD: 1234
+      JWT_SECRET: superSecretKey
+    ports:
+      - "9090:8080"
+    networks:
+      - jenkins-network
+
   my-postgres:
     image: postgres:17
     container_name: my-postgres
@@ -14,33 +30,22 @@ services:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   jenkins:
-    build:
-      context: .
-      dockerfile: Dockerfile.jenkins
+    image: jenkins/jenkins:lts
     container_name: my-jenkins
     privileged: true
     user: root
     environment:
       - JENKINS_OPTS=--httpPort=8080
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
     ports:
-      - "9090:8080"
+      - "9091:8080"
       - "50000:50000"
     networks:
       - jenkins-network
     volumes:
       - jenkins-data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      my-postgres:
-        condition: service_healthy
-      sonarqube:
-        condition: service_started
 
   sonarqube:
     image: sonarqube:community
@@ -55,6 +60,29 @@ services:
       - sonarqube-extensions:/opt/sonarqube/extensions
     networks:
       - jenkins-network
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.2
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    networks:
+      - jenkins-network
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.2
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    networks:
+      - jenkins-network
 
 networks:
   jenkins-network:
@@ -66,3 +94,4 @@ volumes:
   sonarqube-data:
   sonarqube-logs:
   sonarqube-extensions:
+  elasticsearch-data:
