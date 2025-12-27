@@ -9,6 +9,7 @@ import com.logistic.digitale_logistic.mapper.SalesOrderMapper;
 import com.logistic.digitale_logistic.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,15 +33,24 @@ public class SalesOrderService {
 
     @Transactional
     public SalesOrderWithReservationDTO createSalesOrder(SalesOrderDTO dto) {
-        log.info("Creating sales order for client ID: {}, warehouse ID: {}", dto.getClientId(), dto.getWarehouseId());
+
+        log.info(
+                "Creating sales order | clientId={} | warehouseId={}",
+                dto.getClientId(),
+                dto.getWarehouseId()
+        );
 
         // Validate client exists
-        com.logistic.digitale_logistic.entity.Client client = clientRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client not found with ID: " + dto.getClientId()));
+        Client client = clientRepository.findById(dto.getClientId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Client not found with ID: " + dto.getClientId())
+                );
 
         // Validate warehouse exists
         Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
-                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found with ID: " + dto.getWarehouseId()));
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Warehouse not found with ID: " + dto.getWarehouseId())
+                );
 
         // Create sales order
         SalesOrder salesOrder = new SalesOrder();
@@ -57,8 +67,11 @@ public class SalesOrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (SoLineDTO lineDto : dto.getLines()) {
+
             Product product = productRepository.findById(lineDto.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + lineDto.getProductId()));
+                    .orElseThrow(() ->
+                            new IllegalArgumentException("Product not found with ID: " + lineDto.getProductId())
+                    );
 
             if (!product.getActive()) {
                 throw new IllegalArgumentException("Product is not active: " + product.getName());
@@ -70,7 +83,9 @@ public class SalesOrderService {
 
             BigDecimal unitPrice = product.getSellingPrice();
             if (unitPrice == null) {
-                throw new IllegalArgumentException("Product does not have a selling price: " + product.getName());
+                throw new IllegalArgumentException(
+                        "Product does not have a selling price: " + product.getName()
+                );
             }
 
             SoLine line = new SoLine();
@@ -82,48 +97,79 @@ public class SalesOrderService {
 
             lines.add(line);
 
-            BigDecimal lineTotal = unitPrice.multiply(new BigDecimal(lineDto.getQuantity()));
+            BigDecimal lineTotal =
+                    unitPrice.multiply(BigDecimal.valueOf(lineDto.getQuantity()));
             totalAmount = totalAmount.add(lineTotal);
         }
 
         salesOrder.setLines(lines);
         salesOrder.setTotalAmount(totalAmount);
 
-        // Save
+        // Save order
         SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
 
-        log.info("Sales order created: {} with {} lines", savedOrder.getOrderNumber(), savedOrder.getLines().size());
+        // 👉 Business context starts here
+        MDC.put("businessId", savedOrder.getId().toString());
 
-        // AUTOMATIC RESERVATION - Happens immediately after order creation!
-        ReservationResultDTO reservationResult = null;
         try {
-            reservationResult = inventoryReservationService.processOrderReservation(savedOrder.getId());
 
-            // Refresh the order to get updated status and reserved quantities
-            savedOrder = salesOrderRepository.findById(savedOrder.getId()).orElse(savedOrder);
+            log.info(
+                    "Sales order created successfully | orderNumber={} | totalAmount={} | lines={}",
+                    savedOrder.getOrderNumber(),
+                    savedOrder.getTotalAmount(),
+                    savedOrder.getLines().size()
+            );
+
+            // AUTOMATIC RESERVATION
+            log.info("Starting inventory reservation for sales order");
+
+            ReservationResultDTO reservationResult =
+                    inventoryReservationService.processOrderReservation(savedOrder.getId());
+
+            // Refresh order
+            savedOrder = salesOrderRepository
+                    .findById(savedOrder.getId())
+                    .orElse(savedOrder);
+
+            log.info(
+                    "Reservation completed | fullyReserved={} | hasBackorders={}",
+                    reservationResult.isFullyReserved(),
+                    reservationResult.isHasBackorders()
+            );
+
+            return SalesOrderWithReservationDTO.builder()
+                    .salesOrder(salesOrderMapper.toDTO(savedOrder))
+                    .reservationResult(reservationResult)
+                    .build();
 
         } catch (Exception e) {
-            // Create error reservation result
-            reservationResult = ReservationResultDTO.builder()
+
+            log.error("Reservation failed", e);
+
+            ReservationResultDTO reservationResult = ReservationResultDTO.builder()
                     .salesOrderId(savedOrder.getId())
                     .salesOrderNumber(savedOrder.getOrderNumber())
                     .status("CREATED")
                     .fullyReserved(false)
                     .hasBackorders(false)
-                    .message("! Reservation failed: " + e.getMessage() + ". Please retry manually or contact support.")
+                    .message("Reservation failed: " + e.getMessage())
                     .build();
-        }
 
-        // Return combined response
-        return SalesOrderWithReservationDTO.builder()
-                .salesOrder(salesOrderMapper.toDTO(savedOrder))
-                .reservationResult(reservationResult)
-                .build();
+            return SalesOrderWithReservationDTO.builder()
+                    .salesOrder(salesOrderMapper.toDTO(savedOrder))
+                    .reservationResult(reservationResult)
+                    .build();
+
+        } finally {
+            // 👉 VERY IMPORTANT
+            MDC.remove("businessId");
+        }
     }
 
     @Transactional(readOnly = true)
     public List<SalesOrderDTO> getAllSalesOrders() {
-        return salesOrderRepository.findAll().stream()
+        return salesOrderRepository.findAll()
+                .stream()
                 .map(salesOrderMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -137,14 +183,15 @@ public class SalesOrderService {
                 .getName();
 
         Client client = clientRepository.findByUserEmail(email)
-                .orElseThrow(() -> new RuntimeException("Client not found for user"));
+                .orElseThrow(() ->
+                        new RuntimeException("Client not found for user")
+                );
 
         return salesOrderRepository.findByClientUserId(client.getUserId())
                 .stream()
                 .map(salesOrderMapper::toDTO)
                 .collect(Collectors.toList());
     }
-
 
     private String generateOrderNumber() {
         return "SO-" + System.currentTimeMillis();

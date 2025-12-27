@@ -15,6 +15,15 @@ public class GlobalExceptionHandler {
       pd.setTitle("Forbidden");
         return pd;
     }
+
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ProblemDetail handleInvalidCredentialsException(InvalidCredentialsException ex){
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        pd.setTitle("Unauthorized");
+        pd.setDetail(ex.getMessage());
+        return pd;
+    }
+
     @ExceptionHandler(InvalidRefreshTokenException.class)
     public ProblemDetail handleInvalidRefreshTokenException(InvalidRefreshTokenException ex){
         ProblemDetail pd  = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);

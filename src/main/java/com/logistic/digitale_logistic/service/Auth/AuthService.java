@@ -7,6 +7,7 @@ import com.logistic.digitale_logistic.entity.RefreshToken;
 import com.logistic.digitale_logistic.entity.User;
 import com.logistic.digitale_logistic.enums.Role;
 import com.logistic.digitale_logistic.exceptions.ForbeidenException;
+import com.logistic.digitale_logistic.exceptions.InvalidCredentialsException;
 import com.logistic.digitale_logistic.exceptions.InvalidRefreshTokenException;
 import com.logistic.digitale_logistic.jwt.JwtService;
 import com.logistic.digitale_logistic.mapper.UserMapper;
@@ -17,6 +18,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -30,12 +32,13 @@ public class AuthService {
     private  final UserMapper userMapper;
     private final RefreshTokenService refreshTokenService;
 
+    @Transactional
     public AuthResponse  login(LoginRequest request , HttpServletResponse res) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ForbeidenException("User not found"));
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -51,6 +54,7 @@ public class AuthService {
         return new AuthResponse(accessToken);
     }
 
+    @Transactional
     public User register(RegisterRequest req) throws Exception {
         if (userRepository.findByEmail(req.getEmail()).isPresent()) {
             throw new Exception("Email already in use");
