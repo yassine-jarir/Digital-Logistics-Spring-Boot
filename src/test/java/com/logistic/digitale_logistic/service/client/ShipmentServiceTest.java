@@ -42,16 +42,19 @@ class ShipmentServiceTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
 
+        // Initialize warehouse
         warehouse = new Warehouse();
         warehouse.setId(1L);
         warehouse.setName("Main Warehouse");
         warehouse.setLocation("Location A");
 
+        // Initialize product
         product = new Product();
         product.setId(1L);
         product.setSku("SKU-001");
         product.setName("Product A");
 
+        // Initialize soLine
         soLine = new SoLine();
         soLine.setId(1L);
         soLine.setProduct(product);
@@ -59,19 +62,19 @@ class ShipmentServiceTest {
         soLine.setReservedQuantity(5);
         soLine.setUnitPrice(BigDecimal.valueOf(10.00));
 
+        // Initialize salesOrder
         salesOrder = new SalesOrder();
         salesOrder.setId(1L);
+        salesOrder.setOrderNumber("SO-001");
         salesOrder.setStatus("RESERVED");
         salesOrder.setWarehouse(warehouse);
-
-        // Initialize the lines list properly
-        List<SoLine> soLinesList = new ArrayList<>();
-        soLinesList.add(soLine);
-        salesOrder.setLines(soLinesList);
+        salesOrder.setLines(new ArrayList<>());
+        salesOrder.getLines().add(soLine);
 
         // Set the sales order reference in soLine
         soLine.setSalesOrder(salesOrder);
 
+        // Initialize shipmentLine
         shipmentLine = new ShipmentLine();
         shipmentLine.setId(1L);
         shipmentLine.setProduct(product);
@@ -81,6 +84,11 @@ class ShipmentServiceTest {
         // Initialize shipment reference to avoid null in lists
         Shipment dummyShipment = new Shipment();
         dummyShipment.setId(1L);
+        dummyShipment.setShipmentNumber("SHIP-001");
+        dummyShipment.setStatus("PLANNED");
+        dummyShipment.setSalesOrder(salesOrder);
+        dummyShipment.setLines(new ArrayList<>());
+
         shipmentLine.setShipment(dummyShipment);
     }
 
@@ -114,9 +122,14 @@ class ShipmentServiceTest {
     void testShipShipment_Success() {
         Shipment shipment = new Shipment();
         shipment.setId(1L);
+        shipment.setShipmentNumber("SHIP-002");
         shipment.setStatus("PLANNED");
         shipment.setSalesOrder(salesOrder);
-        shipment.setLines(List.of(shipmentLine));
+
+        // Use ArrayList instead of List.of to allow modifications
+        List<ShipmentLine> shipmentLines = new ArrayList<>();
+        shipmentLines.add(shipmentLine);
+        shipment.setLines(shipmentLines);
 
         Inventory inventory = new Inventory();
         inventory.setProduct(product);

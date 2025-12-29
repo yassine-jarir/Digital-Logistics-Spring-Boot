@@ -24,7 +24,7 @@ import java.util.List;
 public class AdminPurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
-
+Boolean a = false;
     /**
      * Get all purchase orders (with optional status filter)
      *

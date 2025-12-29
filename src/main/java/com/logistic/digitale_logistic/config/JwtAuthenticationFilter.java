@@ -1,63 +1,72 @@
 package com.logistic.digitale_logistic.config;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import com.logistic.digitale_logistic.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Component
-public class    JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String SECRET = "super_secret_key_for_digital_logistics_2025";
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
+
+    public JwtAuthenticationFilter(JwtService jwtService, UserDetailsService userDetailsService) {
+        this.jwtService = jwtService;
+        this.userDetailsService = userDetailsService;
+    }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
-            throws ServletException, IOException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return path.startsWith("/api/auth/");
+    }
 
-        String header = request.getHeader("Authorization");
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        final String authHeader = request.getHeader("Authorization");
 
-            try {
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(SECRET.getBytes())
-                        .build()
-                        .parseClaimsJws(token)
-                        .getBody();
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-                String username = claims.getSubject();
-                String role = claims.get("role", String.class);
+        String jwt = authHeader.substring(7);
+        String userEmail = jwtService.extractUsername(jwt);
 
-                System.out.println("🧠 Extracted role from token: " + role);
+        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                List<GrantedAuthority> authorities = Collections.singletonList(
-                        new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role)
+            UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
+
+            if (jwtService.isTokenValid(jwt, userDetails)) {
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                authToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
                 );
 
-                Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(auth);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                SecurityContextHolder.clearContext();
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
-
         }
 
         filterChain.doFilter(request, response);

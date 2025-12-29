@@ -1,4 +1,4 @@
-package com.logistic.digitale_logistic.dto;
+package com.logistic.digitale_logistic.dto.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

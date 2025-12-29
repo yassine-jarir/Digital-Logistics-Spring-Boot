@@ -35,7 +35,6 @@ public class InventoryController {
         return inventoryService.getAll();
     }
 
-    // 1️⃣ Get all inventory for a warehouse
     @Operation(
             summary = "Get inventory by warehouse",
             description = "Retrieve all inventory records for a specific warehouse"
@@ -52,7 +51,6 @@ public class InventoryController {
         return inventoryService.getInventoryByWarehouse(warehouseId);
     }
 
-    // 2️⃣ Get inventory by ID
     @Operation(
             summary = "Get inventory by ID",
             description = "Retrieve a specific inventory record by its ID"
@@ -69,7 +67,6 @@ public class InventoryController {
         return inventoryService.getInventoryById(id);
     }
 
-    // 3️⃣ Create a new inventory record
     @Operation(
             summary = "Create inventory record",
             description = "Create a new inventory record for a product in a warehouse"
@@ -84,7 +81,6 @@ public class InventoryController {
         return inventoryService.createInventory(inventoryDTO);
     }
 
-    // 4️⃣ Update an existing inventory
     @Operation(
             summary = "Update inventory",
             description = "Update an existing inventory record"
@@ -102,7 +98,6 @@ public class InventoryController {
         return inventoryService.updateInventory(id, inventoryDTO);
     }
 
-    // 5️⃣ Delete inventory
     @Operation(
             summary = "Delete inventory",
             description = "Delete an inventory record"
