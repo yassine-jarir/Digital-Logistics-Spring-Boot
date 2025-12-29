@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = {ShipmentLineMapper.class})
-public interface git ShipmentMapper {
+public interface  ShipmentMapper {
 
     @Mapping(source = "salesOrder.id", target = "salesOrderId")
     @Mapping(source = "salesOrder.orderNumber", target = "salesOrderNumber")
