@@ -1,7 +1,7 @@
 package com.logistic.digitale_logistic.service.client;
 
 import com.logistic.digitale_logistic.dto.ProductInventoryDTO;
-import com.logistic.digitale_logistic.dto.WarehouseDTO;
+import com.logistic.digitale_logistic.dto.WarehouseListDTO;
 import com.logistic.digitale_logistic.entity.Inventory;
 import com.logistic.digitale_logistic.entity.Product;
 import com.logistic.digitale_logistic.entity.Warehouse;
@@ -28,13 +28,13 @@ public class WarehouseViewService {
      * @return list of warehouses with product inventory
      */
     @Transactional(readOnly = true)
-    public List<WarehouseDTO> getAllWarehousesWithInventory() {
+    public List<WarehouseListDTO> getAllWarehousesWithInventory() {
         // Get all active warehouses
         List<Warehouse> warehouses = warehouseRepository.findAll().stream()
                 .filter(Warehouse::getActive)
                 .toList();
 
-        List<WarehouseDTO> warehouseDTOs = new ArrayList<>();
+        List<WarehouseListDTO> warehouseListDTOS = new ArrayList<>();
 
         for (Warehouse warehouse : warehouses) {
             // Get inventory for this warehouse
@@ -47,7 +47,7 @@ public class WarehouseViewService {
                     .collect(Collectors.toList());
 
             // Build warehouse DTO
-            WarehouseDTO warehouseDTO = WarehouseDTO.builder()
+            WarehouseListDTO warehouseListDTO = WarehouseListDTO.builder()
                     .id(warehouse.getId())
                     .name(warehouse.getName())
                     .location(warehouse.getLocation())
@@ -55,10 +55,10 @@ public class WarehouseViewService {
                     .products(productInventoryDTOs)
                     .build();
 
-            warehouseDTOs.add(warehouseDTO);
+            warehouseListDTOS.add(warehouseListDTO);
         }
 
-        return warehouseDTOs;
+        return warehouseListDTOS;
     }
 
     /**
@@ -68,7 +68,7 @@ public class WarehouseViewService {
      * @return warehouse with product inventory
      */
     @Transactional(readOnly = true)
-    public WarehouseDTO getWarehouseWithInventory(Long warehouseId) {
+    public WarehouseListDTO getWarehouseWithInventory(Long warehouseId) {
         Warehouse warehouse = warehouseRepository.findById(warehouseId)
                 .orElseThrow(() -> new IllegalArgumentException("Warehouse not found with ID: " + warehouseId));
 
@@ -85,7 +85,7 @@ public class WarehouseViewService {
                 .map(this::toProductInventoryDTO)
                 .collect(Collectors.toList());
 
-        return WarehouseDTO.builder()
+        return WarehouseListDTO.builder()
                 .id(warehouse.getId())
                 .name(warehouse.getName())
                 .location(warehouse.getLocation())

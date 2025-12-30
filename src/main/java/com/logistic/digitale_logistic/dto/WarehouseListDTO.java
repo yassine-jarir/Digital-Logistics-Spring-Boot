@@ -2,16 +2,17 @@ package com.logistic.digitale_logistic.dto;
 
 import lombok.*;
 
-@Getter
-@Setter
+import java.util.List;
+
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-
-public class wareHouseDTO {
+public class WarehouseListDTO {
     private Long id;
     private String name;
     private String location;
-    private String code;
     private Boolean active;
+    private List<ProductInventoryDTO> products;
 }
+

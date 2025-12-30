@@ -1,6 +1,6 @@
 package com.logistic.digitale_logistic.controller.Client;
 
-import com.logistic.digitale_logistic.dto.WarehouseDTO;
+import com.logistic.digitale_logistic.dto.WarehouseListDTO;
 import com.logistic.digitale_logistic.service.client.WarehouseViewService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -47,7 +47,7 @@ public class ClientWarehouseController {
     @GetMapping
     @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
-    public List<WarehouseDTO> getAllWarehouses() {
+    public List<WarehouseListDTO> getAllWarehouses() {
 
         return warehouseViewService.getAllWarehousesWithInventory();
     }
@@ -71,7 +71,7 @@ public class ClientWarehouseController {
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
-    public WarehouseDTO getWarehouseById(
+    public WarehouseListDTO getWarehouseById(
             @Parameter(description = "Warehouse ID", required = true, example = "1")
             @PathVariable Long id) {
         return warehouseViewService.getWarehouseWithInventory(id);

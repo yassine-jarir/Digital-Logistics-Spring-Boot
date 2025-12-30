@@ -17,7 +17,7 @@ import java.util.List;
 public class  SalesOrderDTO {
     private Long id;
     private String orderNumber;
-
+    private String ownerId;
     @NotNull(message = "Client ID is required")
     private Long clientId;
 

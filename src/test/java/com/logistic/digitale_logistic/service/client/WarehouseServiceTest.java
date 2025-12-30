@@ -1,7 +1,7 @@
 package com.logistic.digitale_logistic.service.client;
 
 import com.logistic.digitale_logistic.dto.ProductInventoryDTO;
-import com.logistic.digitale_logistic.dto.WarehouseDTO;
+import com.logistic.digitale_logistic.dto.WarehouseListDTO;
 import com.logistic.digitale_logistic.entity.Inventory;
 import com.logistic.digitale_logistic.entity.Product;
 import com.logistic.digitale_logistic.entity.Warehouse;
@@ -63,11 +63,11 @@ class WarehouseServiceTest {
         when(warehouseRepository.findAll()).thenReturn(List.of(warehouse));
         when(inventoryRepository.findByWarehouse(warehouse)).thenReturn(List.of(inventory));
 
-        List<WarehouseDTO> result = warehouseViewService.getAllWarehousesWithInventory();
+        List<WarehouseListDTO> result = warehouseViewService.getAllWarehousesWithInventory();
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        WarehouseDTO dto = result.get(0);
+        WarehouseListDTO dto = result.get(0);
         assertEquals("Main Warehouse", dto.getName());
         assertEquals(1, dto.getProducts().size());
         ProductInventoryDTO prodDTO = dto.getProducts().get(0);
@@ -82,7 +82,7 @@ class WarehouseServiceTest {
         when(warehouseRepository.findById(1L)).thenReturn(Optional.of(warehouse));
         when(inventoryRepository.findByWarehouse(warehouse)).thenReturn(List.of(inventory));
 
-        WarehouseDTO dto = warehouseViewService.getWarehouseWithInventory(1L);
+        WarehouseListDTO dto = warehouseViewService.getWarehouseWithInventory(1L);
 
         assertNotNull(dto);
         assertEquals("Main Warehouse", dto.getName());
