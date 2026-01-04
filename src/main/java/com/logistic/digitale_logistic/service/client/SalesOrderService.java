@@ -1,12 +1,16 @@
 package com.logistic.digitale_logistic.service.client;
 
+import com.logistic.digitale_logistic.config.SecurityUtils;
 import com.logistic.digitale_logistic.dto.ReservationResultDTO;
 import com.logistic.digitale_logistic.dto.SalesOrderDTO;
 import com.logistic.digitale_logistic.dto.SalesOrderWithReservationDTO;
 import com.logistic.digitale_logistic.dto.SoLineDTO;
 import com.logistic.digitale_logistic.entity.*;
 import com.logistic.digitale_logistic.mapper.SalesOrderMapper;
-import com.logistic.digitale_logistic.repository.*;
+import com.logistic.digitale_logistic.repository.ClientRepository;
+import com.logistic.digitale_logistic.repository.ProductRepository;
+import com.logistic.digitale_logistic.repository.SalesOrderRepository;
+import com.logistic.digitale_logistic.repository.WareHouseRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,7 +20,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,44 +27,42 @@ import java.util.stream.Collectors;
 public class SalesOrderService {
 
     private final SalesOrderRepository salesOrderRepository;
-    private final ClientRepository clientRepository;
     private final WareHouseRepository warehouseRepository;
     private final ProductRepository productRepository;
     private final SalesOrderMapper salesOrderMapper;
     private final InventoryReservationService inventoryReservationService;
+    private final ClientRepository clientRepository;
 
     @Transactional
     public SalesOrderWithReservationDTO createSalesOrder(SalesOrderDTO dto) {
-        log.info("Creating sales order for client ID: {}, warehouse ID: {}", dto.getClientId(), dto.getWarehouseId());
 
-        // Validate client exists
-        com.logistic.digitale_logistic.entity.Client client = clientRepository.findById(dto.getClientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client not found with ID: " + dto.getClientId()));
+        String ownerSub = SecurityUtils.currentUserSub();
 
-        // Validate warehouse exists
         Warehouse warehouse = warehouseRepository.findById(dto.getWarehouseId())
-                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found with ID: " + dto.getWarehouseId()));
+                .orElseThrow(() -> new IllegalArgumentException("Warehouse not found"));
 
-        // Create sales order
+        Client client = clientRepository.findById(dto.getClientId())
+                .orElseThrow(() -> new IllegalArgumentException("Client not found"));
+
         SalesOrder salesOrder = new SalesOrder();
         salesOrder.setOrderNumber(generateOrderNumber());
-        salesOrder.setClient(client);
+        salesOrder.setOwnerSub(ownerSub);
         salesOrder.setWarehouse(warehouse);
+        salesOrder.setClient(client);
         salesOrder.setStatus("CREATED");
         salesOrder.setOrderDate(LocalDateTime.now());
         salesOrder.setUpdatedAt(LocalDateTime.now());
-        salesOrder.setTotalAmount(BigDecimal.ZERO);
 
-        // Create and validate lines
         List<SoLine> lines = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (SoLineDTO lineDto : dto.getLines()) {
+
             Product product = productRepository.findById(lineDto.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + lineDto.getProductId()));
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found"));
 
             if (!product.getActive()) {
-                throw new IllegalArgumentException("Product is not active: " + product.getName());
+                throw new IllegalArgumentException("Product is not active");
             }
 
             if (lineDto.getQuantity() <= 0) {
@@ -70,7 +71,7 @@ public class SalesOrderService {
 
             BigDecimal unitPrice = product.getSellingPrice();
             if (unitPrice == null) {
-                throw new IllegalArgumentException("Product does not have a selling price: " + product.getName());
+                throw new IllegalArgumentException("Product has no selling price");
             }
 
             SoLine line = new SoLine();
@@ -81,40 +82,29 @@ public class SalesOrderService {
             line.setUnitPrice(unitPrice);
 
             lines.add(line);
-
-            BigDecimal lineTotal = unitPrice.multiply(new BigDecimal(lineDto.getQuantity()));
-            totalAmount = totalAmount.add(lineTotal);
+            totalAmount = totalAmount.add(unitPrice.multiply(BigDecimal.valueOf(lineDto.getQuantity())));
         }
 
         salesOrder.setLines(lines);
         salesOrder.setTotalAmount(totalAmount);
 
-        // Save
         SalesOrder savedOrder = salesOrderRepository.save(salesOrder);
 
-        log.info("Sales order created: {} with {} lines", savedOrder.getOrderNumber(), savedOrder.getLines().size());
-
-        // AUTOMATIC RESERVATION - Happens immediately after order creation!
-        ReservationResultDTO reservationResult = null;
+        ReservationResultDTO reservationResult;
         try {
             reservationResult = inventoryReservationService.processOrderReservation(savedOrder.getId());
-
-            // Refresh the order to get updated status and reserved quantities
             savedOrder = salesOrderRepository.findById(savedOrder.getId()).orElse(savedOrder);
-
         } catch (Exception e) {
-            // Create error reservation result
             reservationResult = ReservationResultDTO.builder()
                     .salesOrderId(savedOrder.getId())
                     .salesOrderNumber(savedOrder.getOrderNumber())
                     .status("CREATED")
                     .fullyReserved(false)
                     .hasBackorders(false)
-                    .message("! Reservation failed: " + e.getMessage() + ". Please retry manually or contact support.")
+                    .message("Reservation failed: " + e.getMessage())
                     .build();
         }
 
-        // Return combined response
         return SalesOrderWithReservationDTO.builder()
                 .salesOrder(salesOrderMapper.toDTO(savedOrder))
                 .reservationResult(reservationResult)
@@ -122,19 +112,20 @@ public class SalesOrderService {
     }
 
     @Transactional(readOnly = true)
-    public List<SalesOrderDTO> getAllSalesOrders() {
-        return salesOrderRepository.findAll().stream()
+    public List<SalesOrderDTO> getMyOrders() {
+        return salesOrderRepository.findByOwnerSub(SecurityUtils.currentUserSub())
+                .stream()
                 .map(salesOrderMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
-    public List<SalesOrderDTO> getClientOrders(Long clientId) {
-        return salesOrderRepository.findByClientUserId(clientId).stream()
+    public List<SalesOrderDTO> getAllSalesOrders() {
+        return salesOrderRepository.findAll()
+                .stream()
                 .map(salesOrderMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
-
 
     private String generateOrderNumber() {
         return "SO-" + System.currentTimeMillis();

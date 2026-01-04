@@ -34,7 +34,6 @@ public class  SalesOrderDTO {
     private BigDecimal totalAmount;
     private LocalDateTime updatedAt;
 
-    // For response - include additional details
     private String clientName;
     private String warehouseName;
 }

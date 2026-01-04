@@ -53,4 +53,7 @@ public class SalesOrder {
 
     @OneToMany(mappedBy = "salesOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Shipment> shipments = new ArrayList<>();
+
+    @Column(name = "owner_sub")
+    private String ownerSub;
 }

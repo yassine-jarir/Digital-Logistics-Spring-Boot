@@ -13,7 +13,6 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class BackorderDTO {
-
     private Long id;
     private Long soLineId;
     private Long productId;

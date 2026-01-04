@@ -67,9 +67,7 @@ public class ClientSalesOrderController {
     @PreAuthorize("hasRole('CLIENT')")
     @ResponseStatus(HttpStatus.OK)
     public List<SalesOrderDTO> getMyOrders(Authentication authentication) {
-        // Extract client ID from authenticated user
-        Long clientId = Long.parseLong(authentication.getName());
-        return salesOrderService.getClientOrders(clientId);
+        return salesOrderService.getMyOrders();
     }
 
 }

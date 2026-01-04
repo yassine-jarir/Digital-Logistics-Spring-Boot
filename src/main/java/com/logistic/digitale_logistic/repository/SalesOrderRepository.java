@@ -5,10 +5,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SalesOrderRepository extends JpaRepository<SalesOrder, Long> {
-    List<SalesOrder> findByClientUserId(Long clientId);
-
+    Optional<SalesOrder> findByIdAndOwnerSub(Long id, String ownerSub);
+    List<SalesOrder> findByOwnerSub(String ownerSub);
 }
 
